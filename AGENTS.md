@@ -113,6 +113,15 @@ Actions: `process_start`, `process_update`, `step_add`, `step_start`, `step_comp
 4. Update renderers if output format changes
 5. Run `npm run build` to verify compilation
 6. Test with `node dist/index.js <command>`
+7. **Commit after implementing new features**
+8. **Push only when everything has been tested and verified to work correctly**
+
+## Git Workflow
+
+- **Commit frequently** after completing logical units of work
+- **Test thoroughly** before pushing
+- **Push** when features are complete and verified
+- Commit message format: `type: description` (e.g., `feat: add new tool`, `fix: resolve parser issue`)
 
 ## Known Issues / Gotchas
 
