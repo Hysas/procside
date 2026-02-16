@@ -1,0 +1,51 @@
+{
+  "name": "procside",
+  "version": "0.3.0",
+  "description": "Process-first agent collaboration framework - documents AI agent workflows as structured process artifacts",
+  "type": "module",
+  "bin": {
+    "procside": "./dist/index.js",
+    "procside-mcp": "./dist/mcp-server.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "mcp": "node dist/mcp-server.js",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "claude-code",
+    "codex",
+    "mcp",
+    "process",
+    "workflow",
+    "documentation",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "ora": "^8.0.0",
+    "winston": "^3.19.0",
+    "yaml": "^2.3.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

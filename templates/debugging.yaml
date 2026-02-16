@@ -1,0 +1,83 @@
+id: debugging
+name: Debug Issue
+goal: Investigate and diagnose a problem
+steps:
+  - id: s1
+    name: Gather information
+    description: Collect all relevant data about the issue
+    inputs:
+      - error reports
+      - user feedback
+    outputs:
+      - issue timeline
+      - affected components
+    checks:
+      - data collected
+      - severity assessed
+    status: pending
+  
+  - id: s2
+    name: Form hypothesis
+    description: Develop theories about the cause
+    inputs:
+      - gathered information
+    outputs:
+      - hypothesis list
+      - investigation plan
+    checks:
+      - hypotheses documented
+      - testable predictions
+    status: pending
+  
+  - id: s3
+    name: Test hypothesis
+    description: Systematically verify or rule out causes
+    inputs:
+      - hypothesis list
+    outputs:
+      - test results
+      - findings
+    checks:
+      - tests documented
+      - results reproducible
+    status: pending
+  
+  - id: s4
+    name: Identify solution
+    description: Determine the fix based on findings
+    inputs:
+      - test results
+      - root cause
+    outputs:
+      - solution proposal
+      - implementation notes
+    checks:
+      - solution addresses root cause
+      - solution is viable
+    status: pending
+  
+  - id: s5
+    name: Document findings
+    description: Record the investigation and resolution
+    inputs:
+      - all findings
+    outputs:
+      - incident report
+      - runbook updates if applicable
+    checks:
+      - timeline documented
+      - lessons learned captured
+    status: pending
+
+risks:
+  - id: r1
+    risk: Investigation scope creep
+    impact: medium
+    mitigation: Time-box investigation, focus on most likely causes
+    status: identified
+  
+  - id: r2
+    risk: Misdiagnosis
+    impact: high
+    mitigation: Verify fix addresses root cause, not just symptoms
+    status: identified

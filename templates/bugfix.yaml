@@ -1,0 +1,83 @@
+id: bugfix
+name: Fix Bug
+goal: Identify, fix, and verify a bug resolution
+steps:
+  - id: s1
+    name: Reproduce the issue
+    description: Confirm the bug and understand its conditions
+    inputs:
+      - bug report
+      - error logs
+    outputs:
+      - reproduction steps
+      - minimal test case
+    checks:
+      - bug reproducible
+      - conditions documented
+    status: pending
+  
+  - id: s2
+    name: Identify root cause
+    description: Debug and find the source of the issue
+    inputs:
+      - reproduction steps
+      - codebase
+    outputs:
+      - root cause analysis
+      - affected components
+    checks:
+      - cause verified
+      - related issues checked
+    status: pending
+  
+  - id: s3
+    name: Implement fix
+    description: Apply the fix for the identified issue
+    inputs:
+      - root cause analysis
+    outputs:
+      - fix implementation
+      - fix explanation
+    checks:
+      - fix is minimal
+      - no side effects
+    status: pending
+  
+  - id: s4
+    name: Add regression test
+    description: Create test to prevent bug recurrence
+    inputs:
+      - reproduction steps
+      - fix implementation
+    outputs:
+      - regression test
+    checks:
+      - test fails before fix
+      - test passes after fix
+    status: pending
+  
+  - id: s5
+    name: Verify fix
+    description: Confirm the bug is resolved
+    inputs:
+      - fix implementation
+      - original bug report
+    outputs:
+      - verification results
+    checks:
+      - original case fixed
+      - edge cases tested
+    status: pending
+
+risks:
+  - id: r1
+    risk: Fix introduces new bugs
+    impact: high
+    mitigation: Comprehensive testing, code review
+    status: identified
+  
+  - id: r2
+    risk: Incomplete fix (symptom vs root cause)
+    impact: medium
+    mitigation: Deep analysis, verify with multiple test cases
+    status: identified

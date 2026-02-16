@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Runtime data
+.ai/
+*.log
+.DS_Store
+
+# Environment
+.env
+.env.*
+.procside.yaml
+
+# Generated docs
+docs/PROCESS.md
+docs/PROCESS.mmd
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db

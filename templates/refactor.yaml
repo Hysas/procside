@@ -1,0 +1,80 @@
+id: refactor
+name: Refactor Code
+goal: Improve code quality without changing behavior
+steps:
+  - id: s1
+    name: Identify refactoring targets
+    description: Analyze code for improvement opportunities
+    inputs:
+      - codebase
+      - code review feedback
+    outputs:
+      - refactoring candidates
+      - priority order
+    checks:
+      - benefits documented
+      - risks assessed
+    status: pending
+  
+  - id: s2
+    name: Ensure test coverage
+    description: Verify existing tests cover affected code
+    inputs:
+      - refactoring candidates
+    outputs:
+      - coverage report
+      - additional tests if needed
+    checks:
+      - coverage adequate
+      - tests reliable
+    status: pending
+  
+  - id: s3
+    name: Apply refactoring
+    description: Make the code improvements
+    inputs:
+      - refactoring plan
+    outputs:
+      - refactored code
+    checks:
+      - behavior unchanged
+      - tests still pass
+    status: pending
+  
+  - id: s4
+    name: Update documentation
+    description: Update docs to reflect changes
+    inputs:
+      - refactored code
+    outputs:
+      - updated documentation
+    checks:
+      - docs accurate
+      - examples updated
+    status: pending
+  
+  - id: s5
+    name: Validate no regressions
+    description: Confirm all functionality works
+    inputs:
+      - refactored code
+      - test suite
+    outputs:
+      - validation report
+    checks:
+      - all tests pass
+      - performance maintained
+    status: pending
+
+risks:
+  - id: r1
+    risk: Breaking existing functionality
+    impact: high
+    mitigation: Comprehensive test suite, incremental changes
+    status: identified
+  
+  - id: r2
+    risk: Scope expansion
+    impact: medium
+    mitigation: Define clear boundaries, single responsibility per refactor
+    status: identified

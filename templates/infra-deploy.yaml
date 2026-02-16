@@ -1,0 +1,100 @@
+id: infra.deploy
+name: Deploy Infrastructure
+goal: Deploy infrastructure changes safely
+steps:
+  - id: s1
+    name: Review changes
+    description: Understand what will be deployed
+    inputs:
+      - infrastructure code
+      - change request
+    outputs:
+      - change summary
+      - affected resources
+    checks:
+      - changes documented
+      - impact assessed
+    status: pending
+  
+  - id: s2
+    name: Prepare rollback plan
+    description: Document rollback procedure
+    inputs:
+      - change summary
+    outputs:
+      - rollback procedure
+      - rollback checklist
+    checks:
+      - rollback tested
+      - data backup plan
+    status: pending
+  
+  - id: s3
+    name: Deploy to staging
+    description: Apply changes to staging environment
+    inputs:
+      - infrastructure code
+    outputs:
+      - staging deployment
+      - validation results
+    checks:
+      - deployment successful
+      - smoke tests pass
+    status: pending
+  
+  - id: s4
+    name: Validate staging
+    description: Verify staging environment works correctly
+    inputs:
+      - staging deployment
+    outputs:
+      - validation report
+    checks:
+      - all services healthy
+      - integration tests pass
+    status: pending
+  
+  - id: s5
+    name: Deploy to production
+    description: Apply changes to production
+    inputs:
+      - validated staging
+      - approval
+    outputs:
+      - production deployment
+    checks:
+      - deployment successful
+      - no errors in logs
+    status: pending
+  
+  - id: s6
+    name: Monitor and verify
+    description: Confirm production is stable
+    inputs:
+      - production deployment
+    outputs:
+      - monitoring alerts status
+      - verification report
+    checks:
+      - metrics normal
+      - no customer impact
+    status: pending
+
+risks:
+  - id: r1
+    risk: Deployment failure
+    impact: high
+    mitigation: Rollback plan, staged rollout
+    status: identified
+  
+  - id: r2
+    risk: Data loss
+    impact: critical
+    mitigation: Backups, reversible migrations
+    status: identified
+  
+  - id: r3
+    risk: Service disruption
+    impact: high
+    mitigation: Blue-green deployment, maintenance window
+    status: identified

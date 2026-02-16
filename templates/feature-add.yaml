@@ -1,0 +1,96 @@
+id: feature.add
+name: Add Feature
+goal: Implement a new feature end-to-end with proper testing and documentation
+steps:
+  - id: s1
+    name: Understand requirements
+    description: Analyze requirements and define acceptance criteria
+    inputs:
+      - requirements doc
+      - user story
+    outputs:
+      - acceptance criteria
+      - technical design
+    checks:
+      - criteria documented
+      - edge cases identified
+    status: pending
+  
+  - id: s2
+    name: Create implementation plan
+    description: Break down implementation into manageable tasks
+    inputs:
+      - technical design
+    outputs:
+      - task list
+      - dependency order
+    checks:
+      - tasks estimated
+      - dependencies mapped
+    status: pending
+  
+  - id: s3
+    name: Implement core logic
+    description: Write the main implementation code
+    inputs:
+      - implementation plan
+      - existing codebase
+    outputs:
+      - new modules/files
+    checks:
+      - code follows conventions
+      - no lint errors
+    status: pending
+  
+  - id: s4
+    name: Write tests
+    description: Create unit and integration tests
+    inputs:
+      - acceptance criteria
+      - implementation code
+    outputs:
+      - test files
+      - coverage report
+    checks:
+      - tests pass
+      - coverage meets threshold
+    status: pending
+  
+  - id: s5
+    name: Update documentation
+    description: Document the new feature
+    inputs:
+      - implementation code
+    outputs:
+      - updated docs
+      - API documentation
+    checks:
+      - docs accurate
+      - examples provided
+    status: pending
+  
+  - id: s6
+    name: Review and validate
+    description: Final review against acceptance criteria
+    inputs:
+      - all outputs
+    outputs:
+      - review notes
+      - sign-off
+    checks:
+      - all criteria met
+      - no regressions
+    status: pending
+
+risks:
+  - id: r1
+    risk: Scope creep during implementation
+    impact: medium
+    mitigation: Strict scope definition, defer enhancements to backlog
+    status: identified
+  
+  - id: r2
+    risk: Breaking existing functionality
+    impact: high
+    mitigation: Comprehensive test suite, integration tests
+    status: identified
