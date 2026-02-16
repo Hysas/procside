@@ -2,58 +2,40 @@
 
 Copy and paste this prompt to Claude to test the multi-process features with live dashboard updates.
 
-**IMPORTANT: This prompt uses MCP tools, not bash commands. Make sure procside MCP server is configured.**
-
 ---
 
 ## Prompt to Copy
 
 ```
-I want you to help me test procside's multi-process features using the MCP tools. 
+I want you to help me test procside's multi-process features. 
 
-The dashboard is already running at http://localhost:3456 - I'll watch it while you perform tasks.
+The dashboard is running at http://localhost:3456 - I'll watch it while you work.
 
-Use the procside MCP tools to perform these tasks. Wait 3-5 seconds between each step so I can see the dashboard update.
+Please perform the following tasks, using the procside MCP tools to track your work. Wait 3-5 seconds between actions so I can see the dashboard update.
 
-## Process 1: Feature Development
-1. Use process_init to create: name="Feature: Dark Mode", goal="Add dark mode support to the application"
-2. Use process_add_step to add step: name="Research design requirements"
-3. Use process_add_step to add step: name="Create color palette"  
-4. Use process_add_step to add step: name="Implement CSS variables"
-5. Use process_add_step to add step: name="Add toggle switch"
-6. Use process_add_step to add step: name="Test across browsers"
-7. Use process_step_start to mark step "s1" as in_progress
-8. Use process_step_complete to complete step "s1" with outputs=["Design requirements documented"]
-9. Use process_evidence to record: type="note", value="Researched Material Design dark theme guidelines"
-10. Use process_step_start to mark step "s2" as in_progress
-11. Use process_step_complete to complete step "s2" with outputs=["Color palette defined"]
+## Task 1: Feature Development Process
+Create and work through a process for adding "Dark Mode" to an application:
+- Create the process with an appropriate goal
+- Break it down into logical steps (research, design, implement, test, deploy)
+- Start working on the first step
+- Complete it with some outputs
+- Record evidence of your work
+- Move to the next step and complete it
 
-## Process 2: Bug Fix (parallel process)
-12. Use process_init to create: name="Bug: Login Timeout", goal="Fix the login session timeout issue"
-13. Use process_add_step to add step: name="Reproduce the bug"
-14. Use process_add_step to add step: name="Identify root cause"
-15. Use process_add_step to add step: name="Implement fix"
-16. Use process_add_step to add step: name="Add regression test"
-17. Use process_step_start to mark step "s1" as in_progress
-18. Use process_step_complete to complete step "s1" with outputs=["Bug reproduced in test environment"]
-19. Use process_decide to record: question="Session timeout duration?", choice="Increase to 30 minutes", rationale="Users reported 5 min timeout too short"
+## Task 2: Bug Fix Process  
+Create a separate process for fixing a "Login Timeout" bug:
+- Create the process
+- Add appropriate steps for a bug fix workflow
+- Work through the first step
+- Make a decision about the fix approach
 
-## Switch Between Processes
-20. Use process_list to show all processes
-21. Use process_switch to switch back to proc-001
-22. Use process_status to show current process
+## Task 3: Process Management
+- Show me all processes
+- Switch between them
+- Create a version snapshot
+- Archive one process, then restore it
 
-## Version and Archive
-23. Use process_version to create snapshot with description="Dark mode design complete"
-24. Use process_history to view version history
-25. Use process_archive to archive proc-002
-26. Use process_list to show all processes (should show proc-002 as archived)
-
-## Final Steps
-27. Use process_restore to restore proc-002
-28. Use process_list to show final state of all processes
-
-Please use the MCP tools for each step and tell me what you're doing so I can follow along on the dashboard.
+Use whatever procside MCP tools are appropriate for each task. Explain what you're doing as you go.
 ```
 
 ---
@@ -73,30 +55,30 @@ Make sure the procside MCP server is configured in your Claude Code settings:
 }
 ```
 
-## Available MCP Tools
+## Available MCP Tools (for reference)
 
 | Tool | Description |
 |------|-------------|
-| `process_init` | Initialize a new process |
-| `process_list` | List all processes |
-| `process_switch` | Switch active process |
-| `process_status` | Get process status |
-| `process_add_step` | Add a step |
-| `process_step_start` | Mark step in progress |
-| `process_step_complete` | Mark step completed |
-| `process_decide` | Record a decision |
-| `process_risk` | Identify a risk |
-| `process_evidence` | Record evidence |
-| `process_render` | Generate documentation |
-| `process_check` | Run quality gates |
-| `process_archive` | Archive a process |
-| `process_restore` | Restore archived process |
-| `process_version` | Create version snapshot |
-| `process_history` | View version history |
+| `process_init` | Initialize a new process with name and goal |
+| `process_list` | List all processes (optionally include archived) |
+| `process_switch` | Switch active process by ID |
+| `process_status` | Get current process status and progress |
+| `process_add_step` | Add a new step with name, optional inputs/checks |
+| `process_step_start` | Mark a step as in_progress |
+| `process_step_complete` | Mark a step completed with outputs |
+| `process_decide` | Record a decision with question, choice, rationale |
+| `process_risk` | Identify a risk with description and impact |
+| `process_evidence` | Record evidence (command, file, url, or note) |
+| `process_render` | Generate Markdown and/or Mermaid documentation |
+| `process_check` | Run quality gates on the process |
+| `process_archive` | Archive a completed process |
+| `process_restore` | Restore an archived process |
+| `process_version` | Create a version snapshot with description |
+| `process_history` | View version history of a process |
 
 ## What You Should See on the Dashboard
 
-As Claude executes each MCP tool, you should see:
+As Claude works, you should see:
 
 1. **Process list** update with new processes
 2. **Steps** appear and change status (pending → in_progress → completed)
@@ -108,7 +90,7 @@ As Claude executes each MCP tool, you should see:
 
 ## Dashboard URL
 
-The dashboard will be available at: **http://localhost:3456**
+The dashboard is available at: **http://localhost:3456**
 
 ## Cleanup After Test
 
