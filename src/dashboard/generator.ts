@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import type { Process, Step, Evidence, Decision, Risk } from '../types/index.js';
 import { loadProcess } from '../storage/index.js';
 import { getMissingItems } from '../cli/commands/status.js';
@@ -7,6 +8,8 @@ import { renderMermaid } from '../renderers/mermaid.js';
 import { runGates } from '../quality-gates.js';
 import { DEFAULT_CONFIG } from '../types/config.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const TEMPLATE_PATH = path.join(__dirname, 'templates', 'dashboard.html');
 
 export function generateDashboard(proc: Process, projectPath: string): string {
