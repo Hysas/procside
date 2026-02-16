@@ -66,6 +66,7 @@ This generates:
 | `procside init --template <name>` | Initialize with a template |
 | `procside status` | Show current process state |
 | `procside render` | Generate Markdown and Mermaid docs |
+| `procside dashboard` | Start web dashboard for visualization |
 | `procside add-step <name>` | Add a step to the process |
 | `procside step <id> --status <status>` | Update a step |
 | `procside decide <question> <choice>` | Record a decision |
@@ -76,6 +77,31 @@ This generates:
 | `procside gates` | List quality gates |
 | `procside check` | Run quality gates (exit 1 on failure) |
 | `procside config` | Show/manage configuration |
+
+## Web Dashboard
+
+Visualize your process in real-time with the web dashboard:
+
+```bash
+procside dashboard
+```
+
+This opens a browser with:
+- **Process Flow** — Mermaid diagram rendered live
+- **Steps Timeline** — Visual progress with status icons
+- **Quality Gates** — Pass/fail status for each gate
+- **Evidence Feed** — Real-time evidence timeline
+- **Decisions & Risks** — All context in one place
+
+### Dashboard Options
+
+```bash
+procside dashboard --port 8080    # Custom port
+procside dashboard --no-open      # Don't open browser
+procside dashboard --path ./myproject  # Different project
+```
+
+The dashboard auto-refreshes when `.ai/process.yaml` changes via Server-Sent Events.
 
 ## MCP Integration
 
@@ -310,12 +336,18 @@ npm test
 
 ## Roadmap
 
-### v0.4.0 - Team Features
+### v0.4.0 - Web Dashboard ✅
+- Web dashboard for process visualization
+- Live updates via Server-Sent Events
+- Mermaid diagram rendering
+- Quality gates panel
+
+### v0.5.0 - Team Features
 - Multi-agent process merging
 - Process templates marketplace
-- Web dashboard for visualization
+- Shared templates across teams
 
-### v0.5.0 - Advanced
+### v0.6.0 - Advanced
 - CI/CD plugins (GitHub Actions, GitLab CI)
 - Process analytics and metrics
 - Custom gate definitions

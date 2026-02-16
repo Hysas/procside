@@ -73,9 +73,9 @@
 - [x] Dashboard generator (process.yaml → HTML)
 - [x] Express server with SSE endpoint
 - [x] File watcher for live updates
-- [ ] `procside dashboard` CLI command
-- [ ] Tests for dashboard
-- [ ] Documentation update
+- [x] `procside dashboard` CLI command
+- [x] Tests for dashboard (12 tests)
+- [x] Documentation update
 
 ## Not Started ⏳
 

@@ -1,6 +1,6 @@
 {
   "name": "procside",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Process-first agent collaboration framework - documents AI agent workflows as structured process artifacts",
   "type": "module",
   "bin": {
