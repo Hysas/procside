@@ -78,6 +78,18 @@ This generates:
 | `procside check` | Run quality gates (exit 1 on failure) |
 | `procside config` | Show/manage configuration |
 
+### Multi-Process Commands
+
+| Command | Description |
+|---------|-------------|
+| `procside list` | List all processes |
+| `procside list --all` | List processes including archived |
+| `procside switch <id>` | Switch to a different process |
+| `procside archive <id>` | Archive a completed process |
+| `procside restore <id>` | Restore an archived process |
+| `procside version [note]` | Create a version snapshot |
+| `procside history [id]` | View version history |
+
 ## Web Dashboard
 
 Visualize your process in real-time with the web dashboard:
@@ -131,6 +143,8 @@ Add to your project's Claude Code config (`~/.claude.json`):
 | Tool | Description |
 |------|-------------|
 | `process_init` | Initialize a new process |
+| `process_list` | List all processes |
+| `process_switch` | Switch active process |
 | `process_status` | Get current process state |
 | `process_add_step` | Add a step |
 | `process_step_start` | Mark step in progress |
@@ -140,6 +154,10 @@ Add to your project's Claude Code config (`~/.claude.json`):
 | `process_evidence` | Record evidence |
 | `process_render` | Generate documentation |
 | `process_check` | Run quality gates |
+| `process_archive` | Archive a process |
+| `process_restore` | Restore archived process |
+| `process_version` | Create version snapshot |
+| `process_history` | View version history |
 
 ## Quality Gates
 
@@ -228,13 +246,64 @@ Available templates:
 ```
 your-project/
 ├── .ai/
-│   ├── process.yaml    # Current process state
-│   └── history.yaml    # Immutable event log
+│   ├── registry.yaml      # Process index and metadata
+│   ├── processes/         # Individual process files
+│   │   ├── proc-001.yaml
+│   │   └── proc-002.yaml
+│   ├── versions/          # Version snapshots
+│   │   └── proc-001/
+│   │       ├── v1.yaml
+│   │       └── v2.yaml
+│   └── history.yaml       # Immutable event log
 ├── docs/
-│   ├── PROCESS.md      # Generated documentation
-│   └── PROCESS.mmd     # Mermaid diagram
-└── templates/          # Process templates (optional)
+│   ├── PROCESS.md         # Generated documentation
+│   └── PROCESS.mmd        # Mermaid diagram
+└── templates/             # Process templates (optional)
 ```
+
+## Multi-Process Support
+
+procside supports tracking multiple processes simultaneously. Each process has its own file and can be switched between, archived, and versioned.
+
+### Process Registry
+
+The `.ai/registry.yaml` file tracks all processes:
+
+```yaml
+version: 1
+activeProcessId: proc-001
+processes:
+  - id: proc-001
+    name: Add Authentication
+    goal: Implement user auth with JWT
+    status: in_progress
+    progress: 65
+    archived: false
+  - id: proc-002
+    name: Fix API Timeout
+    goal: Resolve timeout issues
+    status: completed
+    progress: 100
+    archived: true
+```
+
+### Version Snapshots
+
+Create snapshots to track process evolution:
+
+```bash
+procside version "Completed authentication module"
+```
+
+View history:
+
+```bash
+procside history
+```
+
+### Migration
+
+Existing single-process projects are automatically migrated to the multi-process format when you run any command.
 
 ## What Gets Tracked
 
@@ -342,12 +411,19 @@ npm test
 - Mermaid diagram rendering
 - Quality gates panel
 
-### v0.5.0 - Team Features
+### v0.5.0 - Multi-Process Support ✅
+- Process registry for multiple workflows
+- Switch between processes
+- Archive and restore processes
+- Version snapshots and history
+- 16 MCP tools
+
+### v0.6.0 - Team Features
 - Multi-agent process merging
 - Process templates marketplace
 - Shared templates across teams
 
-### v0.6.0 - Advanced
+### v0.7.0 - Advanced
 - CI/CD plugins (GitHub Actions, GitLab CI)
 - Process analytics and metrics
 - Custom gate definitions

@@ -8,7 +8,22 @@ import {
   saveProcess, 
   processExists, 
   initProcess,
-  appendHistory
+  appendHistory,
+  getActiveProcess,
+  saveProcessToRegistry,
+  updateProcessMeta,
+  createProcessInRegistry,
+  listProcesses,
+  listActiveProcesses,
+  setActiveProcess,
+  archiveProcess,
+  restoreProcess,
+  createVersionSnapshot,
+  listVersions,
+  loadProcessById,
+  loadRegistry,
+  needsMigration,
+  migrateFromSingleProcess
 } from './storage/index.js';
 import { applyUpdate } from './storage/process-store.js';
 import { getMissingItems } from './cli/commands/status.js';
@@ -18,11 +33,17 @@ import type { Process, ProcessUpdate, Step } from './types/index.js';
 
 const server = new McpServer({
   name: 'procside',
-  version: '0.2.0'
+  version: '0.5.0'
 });
 
 const getProjectPath = (projectPath?: string): string => {
   return projectPath || process.cwd();
+};
+
+const ensureMigrated = (basePath: string): void => {
+  if (needsMigration(basePath)) {
+    migrateFromSingleProcess(basePath);
+  }
 };
 
 server.tool(
@@ -36,19 +57,9 @@ server.tool(
   },
   async ({ name, goal, template, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (processExists(basePath)) {
-      const existing = loadProcess(basePath);
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `Process already exists: ${existing?.name || 'Unknown'}\nUse process_status to view current state.`
-        }]
-      };
-    }
-    
-    const id = name.toLowerCase().replace(/\s+/g, '.');
-    const proc = initProcess(id, name, goal, template, basePath);
+    const proc = createProcessInRegistry(name, goal, template, basePath);
     
     return {
       content: [{
@@ -60,29 +71,97 @@ server.tool(
 );
 
 server.tool(
-  'process_status',
-  'Get current process status and progress',
+  'process_list',
+  'List all processes in the registry',
   {
+    includeArchived: z.boolean().optional().describe('Include archived processes'),
     projectPath: z.string().optional().describe('Project directory path')
   },
-  async ({ projectPath }) => {
+  async ({ includeArchived, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
+    const registry = loadRegistry(basePath);
+    const processes = includeArchived ? listProcesses(basePath) : listActiveProcesses(basePath);
+    
+    if (processes.length === 0) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
+          text: 'No processes found. Use process_init to create one.'
         }]
       };
     }
     
-    const proc = loadProcess(basePath);
+    let text = `Processes (${processes.length}):\n\n`;
+    processes.forEach(p => {
+      const active = p.id === registry.activeProcessId ? '* ' : '  ';
+      const archived = p.archived ? ' (archived)' : '';
+      text += `${active}${p.id}: ${p.name}\n`;
+      text += `   Goal: ${p.goal}\n`;
+      text += `   Progress: ${p.progress}% | Status: ${p.status}${archived}\n\n`;
+    });
+    
+    return {
+      content: [{
+        type: 'text' as const,
+        text
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_switch',
+  'Switch to a different process',
+  {
+    processId: z.string().describe('ID of the process to switch to'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ processId, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const success = setActiveProcess(processId, basePath);
+    if (!success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Process ${processId} not found. Use process_list to see available processes.`
+        }]
+      };
+    }
+    
+    const proc = loadProcessById(processId, basePath);
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `Switched to process: ${proc?.name} (${processId})`
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_status',
+  'Get current process status and progress',
+  {
+    processId: z.string().optional().describe('Process ID (defaults to active process)'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ processId, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const proc = processId 
+      ? loadProcessById(processId, basePath)
+      : getActiveProcess(basePath);
+    
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first or specify a processId.'
         }]
       };
     }
@@ -91,7 +170,7 @@ server.tool(
     const total = proc.steps.length;
     const missing = getMissingItems(proc);
     
-    let status = `Process: ${proc.name}\n`;
+    let status = `Process: ${proc.name} (${proc.id})\n`;
     status += `Goal: ${proc.goal}\n`;
     status += `Status: ${proc.status}\n`;
     status += `Progress: ${completed}/${total} steps completed\n\n`;
@@ -129,7 +208,7 @@ server.tool(
 
 server.tool(
   'process_add_step',
-  'Add a new step to the process',
+  'Add a new step to the active process',
   {
     name: z.string().describe('Name of the step'),
     stepId: z.string().optional().describe('Custom step ID (auto-generated if not provided)'),
@@ -139,22 +218,14 @@ server.tool(
   },
   async ({ name, stepId, inputs, checks, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -170,7 +241,8 @@ server.tool(
     };
     
     proc.steps.push(step);
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -190,22 +262,14 @@ server.tool(
   },
   async ({ stepId, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -227,7 +291,8 @@ server.tool(
       proc.status = 'in_progress';
     }
     
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -248,22 +313,14 @@ server.tool(
   },
   async ({ stepId, outputs, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -289,7 +346,8 @@ server.tool(
       proc.status = 'completed';
     }
     
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -311,22 +369,14 @@ server.tool(
   },
   async ({ question, choice, rationale, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -339,7 +389,8 @@ server.tool(
       timestamp: new Date().toISOString()
     });
     
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -361,22 +412,14 @@ server.tool(
   },
   async ({ description, impact, mitigation, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -390,7 +433,8 @@ server.tool(
       identifiedAt: new Date().toISOString()
     });
     
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -411,22 +455,14 @@ server.tool(
   },
   async ({ type, value, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
-    
-    const proc = loadProcess(basePath);
+    const proc = getActiveProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first.'
         }]
       };
     }
@@ -437,7 +473,8 @@ server.tool(
       timestamp: new Date().toISOString()
     });
     
-    saveProcess(proc, basePath);
+    saveProcessToRegistry(proc, basePath);
+    updateProcessMeta(proc, basePath);
     
     return {
       content: [{
@@ -453,26 +490,22 @@ server.tool(
   'Generate documentation (Markdown and Mermaid)',
   {
     format: z.enum(['md', 'mermaid', 'both']).optional().describe('Output format'),
+    processId: z.string().optional().describe('Process ID (defaults to active process)'),
     projectPath: z.string().optional().describe('Project directory path')
   },
-  async ({ format = 'both', projectPath }) => {
+  async ({ format = 'both', processId, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
+    const proc = processId 
+      ? loadProcessById(processId, basePath)
+      : getActiveProcess(basePath);
     
-    const proc = loadProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first or specify a processId.'
         }]
       };
     }
@@ -505,26 +538,22 @@ server.tool(
   'process_check',
   'Run quality gates and check process completeness',
   {
+    processId: z.string().optional().describe('Process ID (defaults to active process)'),
     projectPath: z.string().optional().describe('Project directory path')
   },
-  async ({ projectPath }) => {
+  async ({ processId, projectPath }) => {
     const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
     
-    if (!processExists(basePath)) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: 'No process initialized. Use process_init first.'
-        }]
-      };
-    }
+    const proc = processId 
+      ? loadProcessById(processId, basePath)
+      : getActiveProcess(basePath);
     
-    const proc = loadProcess(basePath);
     if (!proc) {
       return {
         content: [{
           type: 'text' as const,
-          text: 'No process found.'
+          text: 'No active process. Use process_init first or specify a processId.'
         }]
       };
     }
@@ -534,7 +563,7 @@ server.tool(
     const hasEvidence = proc.evidence.length > 0;
     const allComplete = proc.steps.every(s => s.status === 'completed');
     
-    let result = 'Quality Check Results:\n\n';
+    let result = `Quality Check Results for ${proc.name}:\n\n`;
     result += hasSteps ? '✅ Has steps\n' : '❌ No steps defined\n';
     result += allComplete ? '✅ All steps completed\n' : `⚠️ ${proc.steps.filter(s => s.status !== 'completed').length} steps incomplete\n`;
     result += hasEvidence ? '✅ Has evidence\n' : '⚠️ No evidence recorded\n';
@@ -546,12 +575,159 @@ server.tool(
       });
     }
     
-    const passed = hasSteps;
-    
     return {
       content: [{
         type: 'text' as const,
         text: result
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_archive',
+  'Archive a completed process',
+  {
+    processId: z.string().describe('ID of the process to archive'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ processId, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const success = archiveProcess(processId, basePath);
+    if (!success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Process ${processId} not found.`
+        }]
+      };
+    }
+    
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `Archived process: ${processId}`
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_restore',
+  'Restore an archived process',
+  {
+    processId: z.string().describe('ID of the process to restore'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ processId, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const success = restoreProcess(processId, basePath);
+    if (!success) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `Process ${processId} not found or not archived.`
+        }]
+      };
+    }
+    
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `Restored process: ${processId}`
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_version',
+  'Create a version snapshot of the current process',
+  {
+    description: z.string().optional().describe('Description of this version'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ description, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const proc = getActiveProcess(basePath);
+    if (!proc) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: 'No active process. Use process_init first.'
+        }]
+      };
+    }
+    
+    const reason = description || 'Manual version snapshot';
+    const versionNum = createVersionSnapshot(proc, reason, basePath);
+    
+    const completedSteps = proc.steps.filter(s => s.status === 'completed').length;
+    const totalSteps = proc.steps.length;
+    const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    
+    return {
+      content: [{
+        type: 'text' as const,
+        text: `Created version: v${versionNum}\nProcess: ${proc.name}\nProgress: ${progress}%`
+      }]
+    };
+  }
+);
+
+server.tool(
+  'process_history',
+  'View version history of a process',
+  {
+    processId: z.string().optional().describe('Process ID (defaults to active process)'),
+    projectPath: z.string().optional().describe('Project directory path')
+  },
+  async ({ processId, projectPath }) => {
+    const basePath = getProjectPath(projectPath);
+    ensureMigrated(basePath);
+    
+    const registry = loadRegistry(basePath);
+    const targetId = processId || registry.activeProcessId;
+    
+    if (!targetId) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: 'No process specified and no active process.'
+        }]
+      };
+    }
+    
+    const versions = listVersions(targetId, basePath);
+    
+    if (versions.length === 0) {
+      return {
+        content: [{
+          type: 'text' as const,
+          text: `No version history for process ${targetId}.`
+        }]
+      };
+    }
+    
+    let text = `Version history for ${targetId}:\n\n`;
+    versions.forEach(v => {
+      const completedSteps = v.process.steps.filter(s => s.status === 'completed').length;
+      const totalSteps = v.process.steps.length;
+      const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      text += `v${v.version}: ${progress}% - ${v.reason}\n`;
+      text += `  Created: ${v.snapshotAt}\n`;
+    });
+    
+    return {
+      content: [{
+        type: 'text' as const,
+        text
       }]
     };
   }

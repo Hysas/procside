@@ -65,22 +65,19 @@
 - [x] Zod schemas for tool validation
 - [x] Tested with Claude Code
 
-## In Progress 🔄
-
-### v0.4.0 - Web Dashboard
-- [x] Install dependencies (express, chokidar, open)
-- [x] HTML template with Tailwind CSS
-- [x] Dashboard generator (process.yaml → HTML)
-- [x] Express server with SSE endpoint
-- [x] File watcher for live updates
-- [x] `procside dashboard` CLI command
-- [x] Tests for dashboard (12 tests)
-- [x] Documentation update
+### Multi-Process Support (v0.5.0)
+- [x] Registry types (ProcessRegistry, ProcessMeta, ProcessVersion)
+- [x] Registry storage functions (create, list, archive, versioning)
+- [x] CLI commands (list, switch, archive, restore, version, history)
+- [x] MCP server tools (16 tools total)
+- [x] Migration from single-process format
+- [x] Tests (95 tests passing)
 
 ## Not Started ⏳
 
 - [ ] Process template CLI commands
 - [ ] Multi-agent process merging
+- [ ] Dashboard multi-process visualization
 
 ## Version History
 
@@ -89,11 +86,12 @@
 | 0.1.0 | Feb 2026 | Initial MVP release |
 | 0.2.0 | Feb 2026 | Test suite (68 tests), Quality gates, Memory bank |
 | 0.3.0 | Feb 2026 | MCP server integration (10 tools) |
-| 0.4.0 | Feb 2026 | Web dashboard (in progress) |
+| 0.4.0 | Feb 2026 | Web dashboard with SSE |
+| 0.5.0 | Feb 2026 | Multi-process support, 16 MCP tools, 95 tests |
 
 ## Roadmap
 
-### v0.5.0 - Team Features
+### v0.6.0 - Team Features
 - Multi-agent support
 - Process merging
 - Shared templates

@@ -2,46 +2,48 @@
 
 ## Current State
 
-**v0.4.0 Complete** - Web dashboard for process visualization is ready.
+**v0.5.0 Complete** - Multi-process support with registry, versioning, and MCP tools.
 
-### v0.4.0 Dashboard Progress
+### v0.5.0 Multi-Process Progress
 | Task | Status |
 |------|--------|
-| Install dependencies (express, chokidar, open) | ✅ Done |
-| HTML template with Tailwind CSS | ✅ Done |
-| Dashboard generator (process.yaml → HTML) | ✅ Done |
-| Express server with SSE | ✅ Done |
-| File watcher for .ai/process.yaml | ✅ Done |
-| CLI command `procside dashboard` | ✅ Done |
-| Tests | ✅ Done |
-| Documentation | ✅ Done |
+| Registry types (ProcessRegistry, ProcessMeta, ProcessVersion) | ✅ Done |
+| Registry storage functions | ✅ Done |
+| CLI commands (list, switch, archive, restore, version, history) | ✅ Done |
+| MCP server tools (16 tools total) | ✅ Done |
+| Migration from single-process format | ✅ Done |
+| Tests (95 tests passing) | ✅ Done |
 
-## Dashboard Architecture
+## Multi-Process Architecture
 
 ```
-src/dashboard/
-├── templates/
-│   └── dashboard.html   # Tailwind CSS, SSE client
-├── generator.ts         # Generate HTML from process
-└── server.ts            # Express + SSE + file watcher
+.ai/
+├── registry.yaml          # Process index and metadata
+├── processes/             # Individual process files
+│   ├── proc-001.yaml
+│   └── proc-002.yaml
+├── versions/              # Version snapshots
+│   └── proc-001/
+│       ├── v1.yaml
+│       └── v2.yaml
+└── history/               # Event logs
 ```
 
-## Dashboard Features
-- Steps timeline (status icons, progress)
-- Mermaid flowchart (auto-rendered)
-- Quality gates panel (pass/fail)
-- Evidence timeline (real-time feed)
-- Live updates via Server-Sent Events
+## New CLI Commands
+- `procside list` - List all processes
+- `procside switch <id>` - Switch active process
+- `procside archive <id>` - Archive a process
+- `procside restore <id>` - Restore archived process
+- `procside version [note]` - Create version snapshot
+- `procside history [id]` - View version history
 
-## Dependencies Added
-- express
-- chokidar
-- open
+## MCP Server Tools (16)
+process_init, process_list, process_switch, process_status, process_add_step, process_step_start, process_step_complete, process_decide, process_risk, process_evidence, process_render, process_check, process_archive, process_restore, process_version, process_history
 
 ## Next Steps
-1. Bump version to 0.4.0 in package.json
-2. Commit and push changes
-3. Plan v0.5.0 features
+1. Update README with multi-process documentation
+2. Consider dashboard multi-process visualization
+3. Plan v0.6.0 features (team collaboration)
 
 ## Session Context
 
