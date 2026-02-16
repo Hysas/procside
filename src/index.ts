@@ -101,11 +101,17 @@ program
   )
   .option("--add-output <output>", "Add an output to the step")
   .action(async (stepId, options) => {
-    const { loadProcess, saveProcess } = await import("./storage/index.js");
-    const proc = loadProcess(options.path);
+    const { getActiveProcess, saveProcessToRegistry, updateProcessMeta, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    // Check if migration is needed
+    if (needsMigration(options.path)) {
+      migrateFromSingleProcess(options.path);
+    }
+
+    const proc = getActiveProcess(options.path);
 
     if (!proc) {
-      console.log('No process found. Run "procside init" first.');
+      console.log('No active process. Run "procside init" first.');
       return;
     }
 
@@ -131,7 +137,8 @@ program
       step.outputs.push(options.addOutput);
     }
 
-    saveProcess(proc, options.path);
+    saveProcessToRegistry(proc, options.path);
+    updateProcessMeta(proc, options.path);
     console.log(`Updated step ${stepId}`);
   });
 
@@ -143,11 +150,17 @@ program
   .option("--inputs <inputs>", "Comma-separated inputs")
   .option("--checks <checks>", "Comma-separated checks")
   .action(async (name, options) => {
-    const { loadProcess, saveProcess } = await import("./storage/index.js");
-    const proc = loadProcess(options.path);
+    const { getActiveProcess, saveProcessToRegistry, updateProcessMeta, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    // Check if migration is needed
+    if (needsMigration(options.path)) {
+      migrateFromSingleProcess(options.path);
+    }
+
+    const proc = getActiveProcess(options.path);
 
     if (!proc) {
-      console.log('No process found. Run "procside init" first.');
+      console.log('No active process. Run "procside init" first.');
       return;
     }
 
@@ -162,7 +175,8 @@ program
     };
 
     proc.steps.push(step);
-    saveProcess(proc, options.path);
+    saveProcessToRegistry(proc, options.path);
+    updateProcessMeta(proc, options.path);
     console.log(`Added step ${stepId}: ${name}`);
   });
 
@@ -172,11 +186,16 @@ program
   .option("-p, --path <path>", "Project path", process.cwd())
   .option("-r, --rationale <rationale>", "Rationale for the decision")
   .action(async (question, choice, options) => {
-    const { loadProcess, saveProcess } = await import("./storage/index.js");
-    const proc = loadProcess(options.path);
+    const { getActiveProcess, saveProcessToRegistry, updateProcessMeta, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    if (needsMigration(options.path)) {
+      migrateFromSingleProcess(options.path);
+    }
+
+    const proc = getActiveProcess(options.path);
 
     if (!proc) {
-      console.log('No process found. Run "procside init" first.');
+      console.log('No active process. Run "procside init" first.');
       return;
     }
 
@@ -188,7 +207,8 @@ program
       timestamp: new Date().toISOString(),
     });
 
-    saveProcess(proc, options.path);
+    saveProcessToRegistry(proc, options.path);
+    updateProcessMeta(proc, options.path);
     console.log(`Recorded decision: ${question} → ${choice}`);
   });
 
@@ -199,11 +219,16 @@ program
   .option("-i, --impact <impact>", "Impact level: low, medium, high", "medium")
   .option("-m, --mitigation <mitigation>", "Mitigation strategy")
   .action(async (description, options) => {
-    const { loadProcess, saveProcess } = await import("./storage/index.js");
-    const proc = loadProcess(options.path);
+    const { getActiveProcess, saveProcessToRegistry, updateProcessMeta, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    if (needsMigration(options.path)) {
+      migrateFromSingleProcess(options.path);
+    }
+
+    const proc = getActiveProcess(options.path);
 
     if (!proc) {
-      console.log('No process found. Run "procside init" first.');
+      console.log('No active process. Run "procside init" first.');
       return;
     }
 
@@ -216,7 +241,8 @@ program
       identifiedAt: new Date().toISOString(),
     });
 
-    saveProcess(proc, options.path);
+    saveProcessToRegistry(proc, options.path);
+    updateProcessMeta(proc, options.path);
     console.log(`Identified risk: ${description}`);
   });
 
@@ -225,11 +251,16 @@ program
   .description("Record evidence of work")
   .option("-p, --path <path>", "Project path", process.cwd())
   .action(async (type, value, options) => {
-    const { loadProcess, saveProcess } = await import("./storage/index.js");
-    const proc = loadProcess(options.path);
+    const { getActiveProcess, saveProcessToRegistry, updateProcessMeta, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    if (needsMigration(options.path)) {
+      migrateFromSingleProcess(options.path);
+    }
+
+    const proc = getActiveProcess(options.path);
 
     if (!proc) {
-      console.log('No process found. Run "procside init" first.');
+      console.log('No active process. Run "procside init" first.');
       return;
     }
 
@@ -239,7 +270,8 @@ program
       timestamp: new Date().toISOString(),
     });
 
-    saveProcess(proc, options.path);
+    saveProcessToRegistry(proc, options.path);
+    updateProcessMeta(proc, options.path);
     console.log(`Recorded evidence: [${type}] ${value}`);
   });
 
