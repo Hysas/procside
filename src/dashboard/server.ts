@@ -5,9 +5,9 @@ import { EventEmitter } from 'events';
 import * as chokidar from 'chokidar';
 import open from 'open';
 import { loadProcess } from '../storage/index.js';
+import { loadConfig } from '../config.js';
 import { generateDashboard } from './generator.js';
 
-const app = express();
 const events = new EventEmitter();
 let watcher: chokidar.FSWatcher | null = null;
 
@@ -19,6 +19,8 @@ export interface DashboardServerOptions {
 
 export function createServer(options: DashboardServerOptions = {}): http.Server {
   const { projectPath = process.cwd() } = options;
+  const app = express();
+  const config = loadConfig(projectPath);
   
   app.get('/', (req: Request, res: Response) => {
     try {
@@ -27,10 +29,10 @@ export function createServer(options: DashboardServerOptions = {}): http.Server 
         res.send('<html><body><h1>No process found</h1><p>Run `procside init` first</p></body></html>');
         return;
       }
-      const html = generateDashboard(proc, projectPath);
+      const html = generateDashboard(proc, projectPath, config.qualityGates);
       res.send(html);
     } catch (error) {
-      res.status(500).send(`<html><body><h1>Error</h1><p>${error}</p></body></html>`);
+      res.status(500).send('<html><body><h1>Error</h1><p>Failed to generate dashboard</p></body></html>');
     }
   });
   

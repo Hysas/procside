@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { Process, Step, Evidence, Decision, Risk } from '../types/index.js';
+import type { QualityGatesConfig } from '../types/config.js';
 import { loadProcess } from '../storage/index.js';
 import { getMissingItems } from '../cli/commands/status.js';
 import { renderMermaid } from '../renderers/mermaid.js';
@@ -12,8 +13,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATE_PATH = path.join(__dirname, 'templates', 'dashboard.html');
 
-export function generateDashboard(proc: Process, projectPath: string): string {
+export function generateDashboard(proc: Process, projectPath: string, gatesConfig?: QualityGatesConfig): string {
   const template = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
+  const config = gatesConfig || DEFAULT_CONFIG.qualityGates;
   
   const completedSteps = proc.steps.filter(s => s.status === 'completed').length;
   const totalSteps = proc.steps.length;
@@ -32,7 +34,7 @@ export function generateDashboard(proc: Process, projectPath: string): string {
     evidenceHtml: renderEvidenceHtml(proc.evidence),
     decisionsHtml: renderDecisionsHtml(proc.decisions),
     risksHtml: renderRisksHtml(proc.risks),
-    gatesHtml: renderGatesHtml(proc),
+    gatesHtml: renderGatesHtml(proc, config),
     missingHtml: renderMissingHtml(proc),
     lastUpdated: new Date().toLocaleString()
   };
@@ -176,8 +178,8 @@ function renderRisksHtml(risks: Risk[]): string {
   }).join('');
 }
 
-function renderGatesHtml(proc: Process): string {
-  const result = runGates(proc, DEFAULT_CONFIG.qualityGates);
+function renderGatesHtml(proc: Process, config: QualityGatesConfig): string {
+  const result = runGates(proc, config);
   
   if (result.errors.length === 0 && result.warnings.length === 0) {
     return '<div class="text-green-400 text-sm">✅ All gates passed</div>';

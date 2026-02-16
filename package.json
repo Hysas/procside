@@ -11,7 +11,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc && npm run copy-templates",
-    "copy-templates": "cp -r src/dashboard/templates dist/dashboard/",
+    "copy-templates": "node -e \"require('fs').cpSync('src/dashboard/templates', 'dist/dashboard/templates', {recursive:true})\"",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "mcp": "node dist/mcp-server.js",
