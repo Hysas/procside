@@ -67,11 +67,10 @@ EOF
 
 echo "Created: $TEST_DIR/.mcp.json"
 
-# Step 5: Initialize a process
-echo -e "${YELLOW}Step 4: Initializing initial process...${NC}"
-cd "$TEST_DIR"
-node "$PROCSIDE_DIR/dist/index.js" init --name "Test Process" --goal "Initial test process"
-echo "Process initialized."
+# Step 5: Create .ai directory for procside
+echo -e "${YELLOW}Step 4: Creating .ai directory...${NC}"
+mkdir -p "$TEST_DIR/.ai"
+echo "Created: $TEST_DIR/.ai"
 
 # Step 6: Start dashboard in background
 echo -e "${YELLOW}Step 5: Starting dashboard...${NC}"
@@ -101,7 +100,7 @@ echo ""
 echo -e "${YELLOW}To use with Claude Code:${NC}"
 echo "1. Open Claude Code in: $TEST_DIR"
 echo "2. The MCP server should auto-connect"
-echo "3. Use procside tools to track work"
+echo "3. Claude will initialize processes using procside tools"
 echo ""
 echo -e "${YELLOW}To stop the dashboard:${NC}"
 echo "  kill $DASHBOARD_PID"
