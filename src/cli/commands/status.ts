@@ -1,4 +1,4 @@
-import { loadProcess, processExists } from '../../storage/index.js';
+import { getActiveProcess, loadRegistry, needsMigration, migrateFromSingleProcess } from '../../storage/index.js';
 import type { Process, Step, Decision, Risk } from '../../types/index.js';
 import logger from '../../logger.js';
 
@@ -20,19 +20,22 @@ function getStatusIcon(status: string): string {
 export function status(projectPath: string = process.cwd()): void {
   logger.debug(`status called with projectPath=${projectPath}`);
 
-  if (!processExists(projectPath)) {
-    logger.warn('No process initialized');
-    console.log('No process initialized. Run "procside init" first.');
-    return;
+  // Check if migration is needed
+  if (needsMigration(projectPath)) {
+    logger.info('Migrating to multi-process format');
+    migrateFromSingleProcess(projectPath);
   }
 
-  const proc = loadProcess(projectPath);
+  const proc = getActiveProcess(projectPath);
   if (!proc) {
-    logger.warn('Process file exists but could not be loaded');
-    console.log('No process found.');
+    logger.warn('No active process');
+    console.log('No active process. Run "procside init" first.');
+    console.log('Use "procside list" to see all processes.');
     return;
   }
 
+  const registry = loadRegistry(projectPath);
+  
   logger.info(`Displaying status for process: ${proc.id} (${proc.status})`);
   
   console.log('\n' + '='.repeat(60));
@@ -44,6 +47,7 @@ export function status(projectPath: string = process.cwd()): void {
   if (proc.template) {
     console.log(`Template: ${proc.template}`);
   }
+  console.log(`Active: ${registry.activeProcessId === proc.id ? 'Yes' : 'No'}`);
   
   if (proc.steps.length > 0) {
     console.log('\n--- Steps ---');
@@ -148,24 +152,27 @@ export function getMissingItems(proc: Process): string[] {
 export function statusJson(projectPath: string = process.cwd()): object | null {
   logger.debug(`statusJson called with projectPath=${projectPath}`);
 
-  if (!processExists(projectPath)) {
-    logger.debug('No process found for JSON status');
+  // Check if migration is needed
+  if (needsMigration(projectPath)) {
+    migrateFromSingleProcess(projectPath);
+  }
+
+  const proc = getActiveProcess(projectPath);
+  if (!proc) {
+    logger.debug('No active process found for JSON status');
     return null;
   }
 
-  const proc = loadProcess(projectPath);
-  if (!proc) {
-    logger.warn('Process file exists but could not be loaded for JSON status');
-    return null;
-  }
+  const registry = loadRegistry(projectPath);
 
   logger.info(`Returning JSON status for process: ${proc.id}`);
   
   return {
     ...proc,
+    activeProcessId: registry.activeProcessId,
     missing: getMissingItems(proc),
     progress: {
-      completed: proc.steps.filter(s => s.status === 'completed').length,
+      completed: proc.steps.filter((s: Step) => s.status === 'completed').length,
       total: proc.steps.length
     }
   };

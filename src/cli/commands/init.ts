@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as YAML from 'yaml';
-import { ensureAiDir, saveProcess, processExists } from '../../storage/index.js';
+import { ensureAiDir, createProcessInRegistry, saveProcessToRegistry, updateProcessMeta, registryExists, needsMigration, migrateFromSingleProcess, loadRegistry } from '../../storage/index.js';
 import type { Process, Step, Risk } from '../../types/index.js';
 
 const AI_DIR = '.ai';
@@ -64,14 +64,13 @@ export function init(projectPath: string = process.cwd(), options?: {
   goal?: string;
   template?: string;
 }): void {
-  if (processExists(projectPath)) {
-    console.log('Process already initialized. Use "procside status" to view.');
-    return;
+  // Check if migration is needed
+  if (needsMigration(projectPath)) {
+    console.log('Migrating to multi-process format...');
+    migrateFromSingleProcess(projectPath);
+    console.log('Migration complete.\n');
   }
 
-  const aiPath = ensureAiDir(projectPath);
-
-  const id = options?.name?.toLowerCase().replace(/\s+/g, '.') || 'main';
   const name = options?.name || 'Main Process';
   const goal = options?.goal || 'Document the AI agent workflow';
 
@@ -87,22 +86,17 @@ export function init(projectPath: string = process.cwd(), options?: {
     }
   }
 
-  const now = new Date().toISOString();
-  const proc: Process = {
-    id,
-    name,
-    goal,
-    status: 'planned',
-    template: options?.template,
-    steps,
-    decisions: [],
-    risks,
-    evidence: [],
-    createdAt: now,
-    updatedAt: now
-  };
+  const proc = createProcessInRegistry(name, goal, options?.template, projectPath);
+  
+  // Add steps and risks from template
+  if (steps.length > 0 || risks.length > 0) {
+    proc.steps = steps;
+    proc.risks = risks;
+    saveProcessToRegistry(proc, projectPath);
+    updateProcessMeta(proc, projectPath);
+  }
 
-  saveProcess(proc, projectPath);
+  const aiPath = ensureAiDir(projectPath);
 
   const docsDir = path.join(projectPath, 'docs');
   if (!fs.existsSync(docsDir)) {
@@ -110,7 +104,7 @@ export function init(projectPath: string = process.cwd(), options?: {
   }
 
   console.log(`Initialized procside in ${aiPath}`);
-  console.log(`Process ID: ${id}`);
+  console.log(`Process ID: ${proc.id}`);
   console.log(`Process Name: ${name}`);
   if (options?.template) {
     console.log(`Template: ${options.template}`);
@@ -125,6 +119,7 @@ export function init(projectPath: string = process.cwd(), options?: {
   console.log(`  1. Run an agent: procside run "claude code"`);
   console.log(`  2. View status: procside status`);
   console.log(`  3. Render docs: procside render`);
+  console.log(`  4. View all processes: procside list`);
 }
 
 export function listTemplates(): string[] {

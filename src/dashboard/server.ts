@@ -4,9 +4,9 @@ import * as path from 'path';
 import { EventEmitter } from 'events';
 import * as chokidar from 'chokidar';
 import open from 'open';
-import { loadProcess } from '../storage/index.js';
+import { getActiveProcess, loadRegistry, listActiveProcesses, loadProcessById, needsMigration, migrateFromSingleProcess } from '../storage/index.js';
 import { loadConfig } from '../config.js';
-import { generateDashboard } from './generator.js';
+import { generateDashboard, generateProcessList } from './generator.js';
 
 const events = new EventEmitter();
 let watcher: chokidar.FSWatcher | null = null;
@@ -22,11 +22,28 @@ export function createServer(options: DashboardServerOptions = {}): http.Server 
   const app = express();
   const config = loadConfig(projectPath);
   
+  // Check if migration is needed
+  if (needsMigration(projectPath)) {
+    migrateFromSingleProcess(projectPath);
+  }
+  
   app.get('/', (req: Request, res: Response) => {
     try {
-      const proc = loadProcess(projectPath);
+      const registry = loadRegistry(projectPath);
+      const processes = listActiveProcesses(projectPath);
+      const html = generateProcessList(processes, registry.activeProcessId, projectPath);
+      res.send(html);
+    } catch (error) {
+      res.status(500).send('<html><body><h1>Error</h1><p>Failed to generate process list</p></body></html>');
+    }
+  });
+  
+  app.get('/process/:id', (req: Request, res: Response) => {
+    try {
+      const processId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      const proc = loadProcessById(processId, projectPath);
       if (!proc) {
-        res.send('<html><body><h1>No process found</h1><p>Run `procside init` first</p></body></html>');
+        res.status(404).send('<html><body><h1>Process not found</h1></body></html>');
         return;
       }
       const html = generateDashboard(proc, projectPath, config.qualityGates);
@@ -57,22 +74,23 @@ export function createServer(options: DashboardServerOptions = {}): http.Server 
 }
 
 export function startWatcher(projectPath: string): void {
-  const processPath = path.join(projectPath, '.ai', 'process.yaml');
+  const aiDir = path.join(projectPath, '.ai');
   
-  watcher = chokidar.watch(processPath, {
+  watcher = chokidar.watch(aiDir, {
     ignoreInitial: true,
     awaitWriteFinish: {
       stabilityThreshold: 100,
       pollInterval: 50
-    }
+    },
+    ignored: /(^|[\/\\])\../
   });
   
-  watcher.on('change', () => {
-    events.emit('process-update');
+  watcher.on('change', (filePath) => {
+    events.emit('process-update', { path: filePath });
   });
   
-  watcher.on('add', () => {
-    events.emit('process-update');
+  watcher.on('add', (filePath) => {
+    events.emit('process-update', { path: filePath });
   });
 }
 
@@ -93,7 +111,7 @@ export function startServer(options: DashboardServerOptions = {}): http.Server {
   server.listen(port, () => {
     const url = `http://localhost:${port}`;
     console.log(`\n  procside dashboard running at ${url}`);
-    console.log(`  Watching: ${path.join(projectPath, '.ai/process.yaml')}`);
+    console.log(`  Watching: ${path.join(projectPath, '.ai/')}`);
     console.log(`\n  Press Ctrl+C to stop\n`);
     
     if (shouldOpen) {

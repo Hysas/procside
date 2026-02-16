@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import type { Process, Step, Evidence, Decision, Risk } from '../types/index.js';
+import type { Process, Step, Evidence, Decision, Risk, ProcessMeta } from '../types/index.js';
 import type { QualityGatesConfig } from '../types/config.js';
 import { loadProcess } from '../storage/index.js';
 import { getMissingItems } from '../cli/commands/status.js';
@@ -242,4 +242,83 @@ export function generateAndSave(projectPath: string): string {
   fs.writeFileSync(outputPath, html, 'utf-8');
   
   return outputPath;
+}
+
+export function generateProcessList(processes: ProcessMeta[], activeProcessId: string | null, projectPath: string): string {
+  const statusIcons: Record<string, string> = {
+    planned: '📋',
+    in_progress: '🔄',
+    blocked: '🚫',
+    completed: '✅',
+    cancelled: '❌'
+  };
+
+  const processesHtml = processes.map(p => {
+    const icon = statusIcons[p.status] || '📋';
+    const isActive = p.id === activeProcessId;
+    const progressColor = p.progress === 100 ? 'bg-green-500' : p.progress > 0 ? 'bg-blue-500' : 'bg-gray-600';
+    
+    return `
+      <a href="/process/${p.id}" class="block p-4 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors ${isActive ? 'ring-2 ring-blue-500' : ''}">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">${icon}</span>
+            <span class="font-medium text-white">${escapeHtml(p.name)}</span>
+            ${isActive ? '<span class="text-xs bg-blue-600 px-2 py-0.5 rounded">Active</span>' : ''}
+          </div>
+          <span class="text-sm text-gray-400">${p.progress}%</span>
+        </div>
+        <p class="text-sm text-gray-400 mb-3">${escapeHtml(p.goal)}</p>
+        <div class="w-full bg-gray-700 rounded-full h-2">
+          <div class="${progressColor} h-2 rounded-full transition-all" style="width: ${p.progress}%"></div>
+        </div>
+        <div class="flex items-center justify-between mt-2 text-xs text-gray-500">
+          <span>${p.status}</span>
+          <span>Updated: ${new Date(p.updatedAt).toLocaleDateString()}</span>
+        </div>
+      </a>
+    `;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>procside - Processes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+    }
+  </script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <header class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-2xl font-bold text-white">procside</h1>
+        <p class="text-gray-400 text-sm">Process Documentation Dashboard</p>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm text-gray-400">${processes.length} process${processes.length !== 1 ? 'es' : ''}</span>
+      </div>
+    </header>
+
+    <main>
+      ${processes.length === 0 
+        ? '<div class="text-center py-12"><p class="text-gray-400">No processes found. Run <code class="bg-gray-800 px-2 py-1 rounded">procside init</code> to create one.</p></div>'
+        : `<div class="grid gap-4">${processesHtml}</div>`
+      }
+    </main>
+
+    <script>
+      const eventSource = new EventSource('/events');
+      eventSource.onmessage = function(event) {
+        location.reload();
+      };
+    </script>
+  </div>
+</body>
+</html>`;
 }

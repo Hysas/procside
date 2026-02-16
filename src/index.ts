@@ -449,9 +449,16 @@ program
   .option("--no-open", "Do not open browser automatically")
   .action(async (options) => {
     const { startServer } = await import("./dashboard/server.js");
-    const { processExists } = await import("./storage/index.js");
+    const { processExists, registryExists, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
 
-    if (!processExists(options.path)) {
+    // Check if migration is needed
+    if (needsMigration(options.path)) {
+      console.log("Migrating to multi-process format...");
+      migrateFromSingleProcess(options.path);
+      console.log("Migration complete.");
+    }
+
+    if (!processExists(options.path) && !registryExists(options.path)) {
       console.log('No process initialized. Run "procside init" first.');
       process.exit(1);
     }
@@ -466,6 +473,166 @@ program
       port,
       projectPath: options.path,
       open: options.open,
+    });
+  });
+
+// Multi-process commands
+program
+  .command("list")
+  .description("List all processes")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .option("--all", "Show archived processes too")
+  .option("--json", "Output as JSON")
+  .action(async (options) => {
+    const { listProcesses, listActiveProcesses, loadRegistry, needsMigration, migrateFromSingleProcess } = await import("./storage/index.js");
+
+    // Check if migration is needed
+    if (needsMigration(options.path)) {
+      console.log("Migrating to multi-process format...");
+      migrateFromSingleProcess(options.path);
+      console.log("Migration complete.\n");
+    }
+
+    const registry = loadRegistry(options.path);
+    const processes = options.all ? listProcesses(options.path) : listActiveProcesses(options.path);
+
+    if (options.json) {
+      console.log(JSON.stringify({
+        activeProcessId: registry.activeProcessId,
+        processes: processes
+      }, null, 2));
+      return;
+    }
+
+    if (processes.length === 0) {
+      console.log("No processes found. Run 'procside init' to create one.");
+      return;
+    }
+
+    console.log("Processes:\n");
+    processes.forEach(p => {
+      const active = p.id === registry.activeProcessId ? "* " : "  ";
+      const statusIcon = p.status === 'completed' ? '✅' : p.status === 'in_progress' ? '🔄' : p.status === 'blocked' ? '🚫' : '⏳';
+      const archived = p.archived ? ' (archived)' : '';
+      console.log(`${active}${statusIcon} ${p.id}  ${p.name}`);
+      console.log(`     Goal: ${p.goal}`);
+      console.log(`     Progress: ${p.progress}%  Status: ${p.status}${archived}`);
+      console.log("");
+    });
+  });
+
+program
+  .command("switch <id>")
+  .description("Switch to a different process")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .action(async (id, options) => {
+    const { setActiveProcess, loadProcessById } = await import("./storage/index.js");
+
+    const success = setActiveProcess(id, options.path);
+    if (!success) {
+      console.log(`Process ${id} not found.`);
+      process.exit(1);
+    }
+
+    const proc = loadProcessById(id, options.path);
+    console.log(`Switched to process: ${proc?.name} (${id})`);
+  });
+
+program
+  .command("archive <id>")
+  .description("Archive a process")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .action(async (id, options) => {
+    const { archiveProcess, loadProcessById } = await import("./storage/index.js");
+
+    const proc = loadProcessById(id, options.path);
+    if (!proc) {
+      console.log(`Process ${id} not found.`);
+      process.exit(1);
+    }
+
+    archiveProcess(id, options.path);
+    console.log(`Archived process: ${proc.name} (${id})`);
+  });
+
+program
+  .command("restore <id>")
+  .description("Restore an archived process")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .action(async (id, options) => {
+    const { restoreProcess, loadProcessById } = await import("./storage/index.js");
+
+    const proc = loadProcessById(id, options.path);
+    if (!proc) {
+      console.log(`Process ${id} not found.`);
+      process.exit(1);
+    }
+
+    restoreProcess(id, options.path);
+    console.log(`Restored process: ${proc.name} (${id})`);
+  });
+
+program
+  .command("version [note]")
+  .description("Create a version snapshot of the current process")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .option("--process <id>", "Process ID (defaults to active process)")
+  .action(async (note, options) => {
+    const { getActiveProcess, loadProcessById, createVersionSnapshot, loadRegistry } = await import("./storage/index.js");
+
+    const registry = loadRegistry(options.path);
+    const processId = options.process || registry.activeProcessId;
+
+    if (!processId) {
+      console.log("No active process. Specify --process <id> or switch to a process.");
+      process.exit(1);
+    }
+
+    const proc = loadProcessById(processId, options.path);
+    if (!proc) {
+      console.log(`Process ${processId} not found.`);
+      process.exit(1);
+    }
+
+    const reason = note || "Manual version snapshot";
+    const version = createVersionSnapshot(proc, reason, options.path);
+    console.log(`Created version ${version} of process: ${proc.name}`);
+  });
+
+program
+  .command("history [id]")
+  .description("Show version history of a process")
+  .option("-p, --path <path>", "Project path", process.cwd())
+  .action(async (id, options) => {
+    const { listVersions, loadRegistry, loadProcessById } = await import("./storage/index.js");
+
+    const registry = loadRegistry(options.path);
+    const processId = id || registry.activeProcessId;
+
+    if (!processId) {
+      console.log("No active process. Specify a process ID.");
+      process.exit(1);
+    }
+
+    const proc = loadProcessById(processId, options.path);
+    if (!proc) {
+      console.log(`Process ${processId} not found.`);
+      process.exit(1);
+    }
+
+    const versions = listVersions(processId, options.path);
+
+    if (versions.length === 0) {
+      console.log(`No version history for process: ${proc.name}`);
+      return;
+    }
+
+    console.log(`Version History: ${proc.name} (${processId})\n`);
+    versions.reverse().forEach(v => {
+      const current = v.version === versions.length ? " (current)" : "";
+      console.log(`  v${v.version}${current} - ${new Date(v.snapshotAt).toLocaleString()}`);
+      console.log(`    ${v.reason}`);
+      console.log("");
     });
   });
 
