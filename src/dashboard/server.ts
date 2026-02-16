@@ -103,19 +103,16 @@ export function startWatcher(projectPath: string): void {
   
   watcher = chokidar.watch(aiDir, {
     ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: 100,
-      pollInterval: 50
-    },
-    ignored: /(^|[\/\\])\../
+    persistent: true,
+    ignorePermissionErrors: true
   });
   
-  watcher.on('change', (filePath) => {
+  watcher.on('all', (event, filePath) => {
     events.emit('process-update', { path: filePath });
   });
   
-  watcher.on('add', (filePath) => {
-    events.emit('process-update', { path: filePath });
+  watcher.on('error', (err) => {
+    console.error(`  [watcher] Error:`, err);
   });
 }
 

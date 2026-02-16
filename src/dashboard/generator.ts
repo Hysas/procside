@@ -586,6 +586,11 @@ export function generateMultiProcessDashboard(
     
     const eventSource = new EventSource('/events');
     
+    eventSource.onopen = function() {
+      document.getElementById('live-indicator').textContent = 'Live';
+      document.getElementById('activity-indicator').style.background = '#22c55e';
+    };
+    
     eventSource.onmessage = function(event) {
       const data = JSON.parse(event.data);
       if (data.type === 'process-update') {
