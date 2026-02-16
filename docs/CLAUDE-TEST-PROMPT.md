@@ -1,6 +1,30 @@
 # Claude Test Prompt for procside v0.5.0
 
-Copy and paste this prompt to Claude. It gives Claude a real task to work on, with documentation about the available MCP tools.
+This document provides a prompt to give Claude a real task using procside MCP tools.
+
+---
+
+## Setup (Run First)
+
+Before giving the prompt to Claude, run the setup script:
+
+```bash
+cd /home/hysas/agentic-workflow-documentation-framework
+./scripts/setup-test-env.sh /tmp/procside-test 3456
+```
+
+This will:
+1. Create a test directory
+2. Build procside
+3. Create MCP configuration files
+4. Initialize a process
+5. Start the dashboard
+
+Then open Claude Code in the test directory:
+```bash
+cd /tmp/procside-test
+claude
+```
 
 ---
 
@@ -52,21 +76,6 @@ Please use the procside tools to track your work on both of these. I want to see
 
 ---
 
-## MCP Server Configuration
-
-Make sure the procside MCP server is configured in your Claude Code settings:
-
-```json
-{
-  "mcpServers": {
-    "procside": {
-      "command": "node",
-      "args": ["/home/hysas/agentic-workflow-documentation-framework/dist/mcp-server.js"]
-    }
-  }
-}
-```
-
 ## What You Should See on the Dashboard
 
 As Claude works, you should see:
@@ -86,7 +95,9 @@ The dashboard is available at: **http://localhost:3456**
 ## Cleanup After Test
 
 ```bash
-# Stop the dashboard (Ctrl+C in the terminal)
+# Stop the dashboard
+kill $(cat /tmp/procside-test/.dashboard.pid)
+
 # Remove test directory
-rm -rf /tmp/procside-live-demo
+rm -rf /tmp/procside-test
 ```
