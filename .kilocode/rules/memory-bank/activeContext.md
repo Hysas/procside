@@ -2,48 +2,50 @@
 
 ## Current State
 
-**v0.3.0 Complete** - procside is fully functional with MCP integration.
+**v0.4.0 In Progress** - Building web dashboard for process visualization.
 
-### Completed This Session
-1. Test suite (68 tests passing)
-2. Quality gates (7 gates, configurable)
-3. MCP server (10 tools, stdio transport)
-4. Memory bank setup (AGENTS.md + .kilocode/)
-5. Template loading at init
-6. Config system with env vars
-7. Tested autonomously with Claude Code MCP integration
+### v0.4.0 Dashboard Progress
+| Task | Status |
+|------|--------|
+| Install dependencies (express, chokidar, open) | ✅ Done |
+| HTML template with Tailwind CSS | ✅ Done |
+| Dashboard generator (process.yaml → HTML) | ✅ Done |
+| Express server with SSE | ✅ Done |
+| File watcher for .ai/process.yaml | ✅ Done |
+| CLI command `procside dashboard` | ❌ TODO |
+| Tests | ❌ TODO |
+| Documentation | ❌ TODO |
 
-## Recent Decisions
+## Dashboard Architecture
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| Memory Bank approach | AGENTS.md + .kilocode/ | Kilo deprecated Memory Bank in favor of AGENTS.md |
-| Template loading | At init time | Simplest approach, templates copied to process.yaml |
-| Config file format | YAML | Consistent with process storage |
-| MCP transport | stdio | Claude Code native support |
-| Test framework | vitest | Fast, ESM native |
+```
+src/dashboard/
+├── templates/
+│   └── dashboard.html   # ✅ Tailwind CSS, SSE client
+├── generator.ts         # ✅ Generate HTML from process
+└── server.ts            # ✅ Express + SSE + file watcher
+```
 
-## Key Files
+## Dashboard Features
+- Steps timeline (status icons, progress)
+- Mermaid flowchart (auto-rendered)
+- Quality gates panel (pass/fail)
+- Evidence timeline (real-time feed)
+- Live updates via Server-Sent Events
 
-- `src/index.ts` - All CLI commands
-- `src/mcp-server.ts` - MCP server with 10 tools
-- `src/quality-gates.ts` - Quality gate definitions
-- `src/storage/process-store.ts` - Core persistence
-- `AGENTS.md` - Project instructions for AI agents
+## Dependencies Added
+- express
+- chokidar
+- open
 
-## Project Stats
-
-- **68 tests** passing
-- **15 CLI commands**
-- **10 MCP tools**
-- **5 templates**
-- **7 quality gates**
-
-## Known Issues
-
-- Decisions not always logged for simple tasks (expected behavior)
+## Next Steps
+1. Add `procside dashboard` CLI command to src/index.ts
+2. Build and test
+3. Add tests
+4. Update README
 
 ## Session Context
 
 Working directory: `/home/hysas/agentic-workflow-documentation-framework`
+GitHub: https://github.com/Hysas/procside
 

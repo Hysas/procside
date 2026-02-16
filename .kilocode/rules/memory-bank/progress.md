@@ -67,20 +67,20 @@
 
 ## In Progress 🔄
 
-- None currently
+### v0.4.0 - Web Dashboard
+- [x] Install dependencies (express, chokidar, open)
+- [x] HTML template with Tailwind CSS
+- [x] Dashboard generator (process.yaml → HTML)
+- [x] Express server with SSE endpoint
+- [x] File watcher for live updates
+- [ ] `procside dashboard` CLI command
+- [ ] Tests for dashboard
+- [ ] Documentation update
 
 ## Not Started ⏳
 
 - [ ] Process template CLI commands
 - [ ] Multi-agent process merging
-- [ ] Web dashboard
-
-## Known Bugs
-
-| Issue | Status | Notes |
-|-------|--------|-------|
-| Mermaid parentheses | Fixed | Labels now quoted |
-| ES Module require() | Fixed | Converted to import |
 
 ## Version History
 
@@ -89,10 +89,11 @@
 | 0.1.0 | Feb 2026 | Initial MVP release |
 | 0.2.0 | Feb 2026 | Test suite (68 tests), Quality gates, Memory bank |
 | 0.3.0 | Feb 2026 | MCP server integration (10 tools) |
+| 0.4.0 | Feb 2026 | Web dashboard (in progress) |
 
 ## Roadmap
 
-### v0.4.0 - Team Features
+### v0.5.0 - Team Features
 - Multi-agent support
 - Process merging
 - Shared templates

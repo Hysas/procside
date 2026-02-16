@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{processName}} - procside dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <style>
+    .mermaid { background: transparent !important; }
+    .step-pending { @apply border-gray-300 bg-gray-50; }
+    .step-in_progress { @apply border-blue-400 bg-blue-50; }
+    .step-completed { @apply border-green-400 bg-green-50; }
+    .step-failed { @apply border-red-400 bg-red-50; }
+    .step-skipped { @apply border-gray-400 bg-gray-100; }
+    @keyframes pulse-border {
+      0%, 100% { border-color: rgb(59 130 246); }
+      50% { border-color: rgb(147 197 253); }
+    }
+    .pulse-active { animation: pulse-border 2s infinite; }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Header -->
+    <header class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-white">{{processName}}</h1>
+          <p class="text-gray-400 mt-1">{{processGoal}}</p>
+        </div>
+        <div class="flex items-center gap-4">
+          <span id="status-badge" class="px-3 py-1 rounded-full text-sm font-medium {{statusClass}}">{{processStatus}}</span>
+          <span id="live-indicator" class="flex items-center gap-2 text-sm text-gray-400">
+            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            Live
+          </span>
+        </div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="mt-6">
+        <div class="flex justify-between text-sm text-gray-400 mb-2">
+          <span>Progress</span>
+          <span id="progress-text">{{completedSteps}}/{{totalSteps}} steps</span>
+        </div>
+        <div class="w-full bg-gray-700 rounded-full h-3">
+          <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" style="width: {{progressPercent}}%"></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Main Content -->
+      <div class="lg:col-span-2 space-y-6">
+        
+        <!-- Mermaid Flowchart -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path>
+            </svg>
+            Process Flow
+          </h2>
+          <div id="mermaid-container" class="overflow-auto">
+            <pre class="mermaid">{{mermaidDiagram}}</pre>
+          </div>
+        </section>
+        
+        <!-- Steps Timeline -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+            </svg>
+            Steps Timeline
+          </h2>
+          <div id="steps-container" class="space-y-3">
+            {{stepsHtml}}
+          </div>
+        </section>
+        
+        <!-- Evidence Timeline -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+            Evidence
+          </h2>
+          <div id="evidence-container" class="space-y-2 max-h-64 overflow-y-auto">
+            {{evidenceHtml}}
+          </div>
+        </section>
+      </div>
+      
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        
+        <!-- Quality Gates -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Quality Gates
+          </h2>
+          <div id="gates-container" class="space-y-2">
+            {{gatesHtml}}
+          </div>
+        </section>
+        
+        <!-- Decisions -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Decisions
+          </h2>
+          <div id="decisions-container" class="space-y-3">
+            {{decisionsHtml}}
+          </div>
+        </section>
+        
+        <!-- Risks -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            Risks
+          </h2>
+          <div id="risks-container" class="space-y-2">
+            {{risksHtml}}
+          </div>
+        </section>
+        
+        <!-- What's Missing -->
+        <section class="bg-gray-800 rounded-xl p-6 shadow-lg">
+          <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            What's Missing
+          </h2>
+          <div id="missing-container" class="space-y-1 text-sm">
+            {{missingHtml}}
+          </div>
+        </section>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+      <p>procside dashboard • Last updated: <span id="last-updated">{{lastUpdated}}</span></p>
+    </footer>
+  </div>
+  
+  <script>
+    mermaid.initialize({ 
+      startOnLoad: true, 
+      theme: 'dark',
+      flowchart: { useMaxWidth: true }
+    });
+    
+    // SSE connection for live updates
+    const eventSource = new EventSource('/events');
+    
+    eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      if (data.type === 'process-update') {
+        location.reload();
+      }
+    };
+    
+    eventSource.onerror = function() {
+      document.getElementById('live-indicator').innerHTML = 
+        '<span class="w-2 h-2 bg-red-500 rounded-full"></span> Disconnected';
+    };
+  </script>
+</body>
+</html>
