@@ -83,7 +83,7 @@ echo "Created: $TEST_DIR/.ai/registry.yaml"
 
 # Step 6: Start dashboard in background
 echo -e "${YELLOW}Step 5: Starting dashboard...${NC}"
-node "$PROCSIDE_DIR/dist/index.js" dashboard --port "$PORT" --no-open &
+node "$PROCSIDE_DIR/dist/index.js" dashboard --port "$PORT" --path "$TEST_DIR" --no-open &
 DASHBOARD_PID=$!
 sleep 2
 
