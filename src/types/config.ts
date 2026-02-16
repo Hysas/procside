@@ -42,12 +42,12 @@ export const DEFAULT_CONFIG: ProcsideConfig = {
     failOnWarning: false,
     gates: [
       { id: 'has_steps', enabled: true },
-      { id: 'all_steps_completed', enabled: false },
+      { id: 'all_steps_completed', enabled: true },
       { id: 'has_evidence', enabled: true },
-      { id: 'has_decisions', enabled: false },
+      { id: 'has_decisions', enabled: true },
       { id: 'no_pending_missing', enabled: true },
-      { id: 'has_rollback', enabled: false },
-      { id: 'has_validation', enabled: false },
+      { id: 'has_rollback', enabled: true },
+      { id: 'has_validation', enabled: true },
     ]
   }
 };
