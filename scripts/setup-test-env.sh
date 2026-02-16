@@ -72,6 +72,15 @@ echo -e "${YELLOW}Step 4: Creating .ai directory...${NC}"
 mkdir -p "$TEST_DIR/.ai"
 echo "Created: $TEST_DIR/.ai"
 
+# Step 5b: Create empty registry so dashboard can start
+cat > "$TEST_DIR/.ai/registry.yaml" << EOF
+version: 1
+activeProcessId: null
+processes: []
+templates: []
+EOF
+echo "Created: $TEST_DIR/.ai/registry.yaml"
+
 # Step 6: Start dashboard in background
 echo -e "${YELLOW}Step 5: Starting dashboard...${NC}"
 node "$PROCSIDE_DIR/dist/index.js" dashboard --port "$PORT" --no-open &
