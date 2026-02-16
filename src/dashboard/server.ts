@@ -6,7 +6,7 @@ import * as chokidar from 'chokidar';
 import open from 'open';
 import { getActiveProcess, loadRegistry, listActiveProcesses, loadProcessById, needsMigration, migrateFromSingleProcess } from '../storage/index.js';
 import { loadConfig } from '../config.js';
-import { generateDashboard, generateProcessList } from './generator.js';
+import { generateDashboard, generateProcessList, generateMultiProcessDashboard } from './generator.js';
 
 const events = new EventEmitter();
 let watcher: chokidar.FSWatcher | null = null;
@@ -27,14 +27,39 @@ export function createServer(options: DashboardServerOptions = {}): http.Server 
     migrateFromSingleProcess(projectPath);
   }
   
-  app.get('/', (req: Request, res: Response) => {
+  // API endpoint for JSON data
+  app.get('/api/processes', (req: Request, res: Response) => {
+    try {
+      const registry = loadRegistry(projectPath);
+      const processes = listActiveProcesses(projectPath).map(meta => {
+        const proc = loadProcessById(meta.id, projectPath);
+        return proc ? { ...meta, steps: proc.steps, evidence: proc.evidence, decisions: proc.decisions, risks: proc.risks } : meta;
+      });
+      res.json({
+        processes,
+        activeProcessId: registry.activeProcessId
+      });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to load processes' });
+    }
+  });
+  
+  // Multi-process dashboard with animation style variants
+  app.get(['/', '/1', '/2', '/3', '/4'], (req: Request, res: Response) => {
     try {
       const registry = loadRegistry(projectPath);
       const processes = listActiveProcesses(projectPath);
-      const html = generateProcessList(processes, registry.activeProcessId, projectPath);
+      
+      // Determine animation style from path
+      let animationStyle = 'fade';
+      if (req.path === '/2') animationStyle = 'slide';
+      else if (req.path === '/3') animationStyle = 'scale';
+      else if (req.path === '/4') animationStyle = 'minimal';
+      
+      const html = generateMultiProcessDashboard(processes, registry.activeProcessId, projectPath, animationStyle);
       res.send(html);
     } catch (error) {
-      res.status(500).send('<html><body><h1>Error</h1><p>Failed to generate process list</p></body></html>');
+      res.status(500).send('<html><body><h1>Error</h1><p>Failed to generate dashboard</p></body></html>');
     }
   });
   

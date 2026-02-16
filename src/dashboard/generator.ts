@@ -3,7 +3,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { Process, Step, Evidence, Decision, Risk, ProcessMeta } from '../types/index.js';
 import type { QualityGatesConfig } from '../types/config.js';
-import { loadProcess } from '../storage/index.js';
+import { loadProcess, loadProcessById } from '../storage/index.js';
 import { getMissingItems } from '../cli/commands/status.js';
 import { renderMermaid } from '../renderers/mermaid.js';
 import { runGates } from '../quality-gates.js';
@@ -321,4 +321,453 @@ export function generateProcessList(processes: ProcessMeta[], activeProcessId: s
   </div>
 </body>
 </html>`;
+}
+
+export function generateMultiProcessDashboard(
+  processes: ProcessMeta[],
+  activeProcessId: string | null,
+  projectPath: string,
+  animationStyle: string = 'fade'
+): string {
+  const statusIcons: Record<string, string> = {
+    planned: '📋',
+    in_progress: '🔄',
+    blocked: '🚫',
+    completed: '✅',
+    cancelled: '❌'
+  };
+
+  // Load full process data for active process
+  const activeProcess = activeProcessId ? loadProcessById(activeProcessId, projectPath) : null;
+  const backgroundProcesses = processes.filter(p => p.id !== activeProcessId);
+  
+  // Generate JSON for client-side rendering
+  const processesJson = JSON.stringify(processes.map(meta => {
+    const proc = loadProcessById(meta.id, projectPath);
+    return proc ? { ...meta, steps: proc.steps, evidence: proc.evidence, decisions: proc.decisions, risks: proc.risks } : meta;
+  }));
+
+  // Active process HTML
+  let activeHtml = '';
+  if (activeProcess) {
+    const completedSteps = activeProcess.steps.filter(s => s.status === 'completed').length;
+    const totalSteps = activeProcess.steps.length;
+    const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    
+    activeHtml = `
+      <div class="bg-gray-800 rounded-xl p-6 shadow-lg active-process process-card">
+        <div class="flex items-start justify-between mb-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-2xl">${statusIcons[activeProcess.status] || '📋'}</span>
+              <h2 class="text-xl font-semibold">${escapeHtml(activeProcess.name)}</h2>
+              <span class="text-xs text-gray-500 font-mono">${activeProcess.id}</span>
+            </div>
+            <p class="text-gray-400 text-sm">${escapeHtml(activeProcess.goal)}</p>
+          </div>
+          <div class="text-right">
+            <span class="px-2 py-1 rounded text-xs font-medium ${getStatusClass(activeProcess.status)}">${activeProcess.status}</span>
+            <div class="text-xs text-gray-500 mt-1">Updated: ${new Date(activeProcess.updatedAt).toLocaleString()}</div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <div class="flex justify-between text-sm text-gray-400 mb-1">
+            <span>Progress</span>
+            <span>${completedSteps}/${totalSteps} steps</span>
+          </div>
+          <div class="w-full bg-gray-700 rounded-full h-2">
+            <div class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full progress-bar" style="width: ${progress}%"></div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h3 class="text-sm font-medium text-gray-300 mb-2">Steps</h3>
+          <div class="space-y-2">
+            ${renderStepsCompact(activeProcess.steps)}
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-3 gap-4 mt-4">
+          <div>
+            <h3 class="text-sm font-medium text-gray-300 mb-2">Evidence (${activeProcess.evidence.length})</h3>
+            <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+              ${activeProcess.evidence.length > 0 ? activeProcess.evidence.slice(-3).map(e => `<div class="truncate">• ${escapeHtml(e.value)}</div>`).join('') : '<div class="text-gray-500">None</div>'}
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-300 mb-2">Decisions (${activeProcess.decisions.length})</h3>
+            <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+              ${activeProcess.decisions.length > 0 ? activeProcess.decisions.slice(-3).map(d => `<div class="truncate">• ${escapeHtml(d.choice)}</div>`).join('') : '<div class="text-gray-500">None</div>'}
+            </div>
+          </div>
+          <div>
+            <h3 class="text-sm font-medium text-gray-300 mb-2">Risks (${activeProcess.risks.length})</h3>
+            <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+              ${activeProcess.risks.length > 0 ? activeProcess.risks.slice(-3).map(r => `<div class="truncate">• ${escapeHtml(r.risk)}</div>`).join('') : '<div class="text-gray-500">None</div>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    activeHtml = `
+      <div class="bg-gray-800 rounded-xl p-6 shadow-lg text-center">
+        <p class="text-gray-400">No active process. Waiting for Claude to create one...</p>
+      </div>
+    `;
+  }
+
+  // Background processes HTML
+  const backgroundHtml = backgroundProcesses.map(p => {
+    const icon = statusIcons[p.status] || '📋';
+    return `
+      <div class="process-card background-process bg-gray-800 rounded-lg p-4 border-l-4 status-${p.status}">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-lg">${icon}</span>
+          <span class="font-medium text-sm truncate">${escapeHtml(p.name)}</span>
+        </div>
+        <div class="text-xs text-gray-400 mb-2 truncate">${escapeHtml(p.goal)}</div>
+        <div class="w-full bg-gray-700 rounded-full h-1.5 mb-2">
+          <div class="bg-blue-500 h-1.5 rounded-full progress-bar" style="width: ${p.progress}%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500">
+          <span>${p.progress}%</span>
+          <span>${p.status}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>procside Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .mermaid { background: transparent !important; }
+    
+    /* Animation Style: Fade */
+    .anim-fade .process-card { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .anim-fade .process-card.updating { opacity: 0.5; }
+    .anim-fade .step-item { transition: all 0.3s ease; }
+    .anim-fade .step-item.changed { animation: fade-highlight 0.5s ease; }
+    @keyframes fade-highlight {
+      0% { background-color: rgba(59, 130, 246, 0.3); }
+      100% { background-color: transparent; }
+    }
+    
+    /* Animation Style: Slide */
+    .anim-slide .process-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .anim-slide .process-card.updating { transform: translateX(10px); }
+    .anim-slide .step-item { transition: all 0.3s ease; }
+    .anim-slide .step-item.changed { animation: slide-in 0.4s ease; }
+    @keyframes slide-in {
+      0% { transform: translateX(-20px); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    
+    /* Animation Style: Scale */
+    .anim-scale .process-card { transition: all 0.3s ease; }
+    .anim-scale .process-card.updating { transform: scale(1.02); }
+    .anim-scale .step-item { transition: all 0.3s ease; }
+    .anim-scale .step-item.changed { animation: scale-pop 0.4s ease; }
+    @keyframes scale-pop {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* Animation Style: Minimal */
+    .anim-minimal .process-card { transition: border-color 0.2s ease; }
+    .anim-minimal .process-card.updating { border-color: #3b82f6; }
+    .anim-minimal .step-item { transition: border-left-color 0.2s ease; }
+    .anim-minimal .step-item.changed { border-left-color: #22c55e; }
+    
+    /* Status colors */
+    .status-planned { border-left-color: #6b7280; }
+    .status-in_progress { border-left-color: #3b82f6; }
+    .status-completed { border-left-color: #22c55e; }
+    .status-blocked { border-left-color: #f59e0b; }
+    .status-cancelled { border-left-color: #ef4444; }
+    
+    .active-process { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+    .background-process { opacity: 0.7; }
+    .background-process:hover { opacity: 1; }
+    .progress-bar { transition: width 0.5s ease; }
+    
+    @keyframes pulse-border {
+      0%, 100% { border-left-color: #3b82f6; }
+      50% { border-left-color: #93c5fd; }
+    }
+    .step-in_progress { animation: pulse-border 2s infinite; }
+    
+    .activity-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen anim-${animationStyle}">
+  <div class="container mx-auto px-4 py-6 max-w-7xl">
+    
+    <header class="mb-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold text-white">procside</h1>
+          <span class="text-gray-400 text-sm">Process Documentation Dashboard</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <span class="text-sm text-gray-400">${processes.length} processes</span>
+          <div class="flex items-center gap-2">
+            <div class="activity-dot" id="activity-indicator"></div>
+            <span id="live-indicator" class="text-sm text-gray-400">Live</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-4 flex gap-2">
+        <a href="/" class="px-3 py-1 rounded text-sm ${animationStyle === 'fade' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}">Fade</a>
+        <a href="/2" class="px-3 py-1 rounded text-sm ${animationStyle === 'slide' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}">Slide</a>
+        <a href="/3" class="px-3 py-1 rounded text-sm ${animationStyle === 'scale' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}">Scale</a>
+        <a href="/4" class="px-3 py-1 rounded text-sm ${animationStyle === 'minimal' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}">Minimal</a>
+      </div>
+    </header>
+
+    <div id="dashboard-content">
+      <section id="active-process" class="mb-6">
+        ${activeHtml}
+      </section>
+      
+      <section id="background-processes">
+        <h3 class="text-sm font-medium text-gray-400 mb-3">Other Processes</h3>
+        <div id="process-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${backgroundHtml || '<div class="text-gray-500 text-sm col-span-full">No other processes</div>'}
+        </div>
+      </section>
+    </div>
+    
+    <footer class="mt-8 text-center text-gray-500 text-xs">
+      <p>procside dashboard • Last update: <span id="last-updated">${new Date().toLocaleTimeString()}</span></p>
+    </footer>
+  </div>
+  
+  <script>
+    let state = {
+      processes: ${processesJson},
+      activeProcessId: ${activeProcessId ? `"${activeProcessId}"` : 'null'},
+      animationStyle: "${animationStyle}"
+    };
+    
+    const statusIcons = {
+      planned: '📋',
+      in_progress: '🔄',
+      blocked: '🚫',
+      completed: '✅',
+      cancelled: '❌'
+    };
+    
+    const stepIcons = {
+      pending: '⏳',
+      in_progress: '▶️',
+      completed: '✓',
+      failed: '✗',
+      skipped: '⏭️'
+    };
+    
+    const eventSource = new EventSource('/events');
+    
+    eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      if (data.type === 'process-update') {
+        fetch('/api/processes')
+          .then(res => res.json())
+          .then(data => {
+            state.processes = data.processes;
+            state.activeProcessId = data.activeProcessId;
+            render();
+          })
+          .catch(err => console.error('Failed to fetch updates:', err));
+      }
+    };
+    
+    eventSource.onerror = function() {
+      document.getElementById('live-indicator').textContent = 'Disconnected';
+      document.getElementById('activity-indicator').style.background = '#ef4444';
+    };
+    
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+    
+    function render() {
+      renderActiveProcess();
+      renderBackgroundProcesses();
+      updateTimestamp();
+    }
+    
+    function renderActiveProcess() {
+      const container = document.getElementById('active-process');
+      const active = state.processes.find(p => p.id === state.activeProcessId);
+      
+      if (!active) {
+        container.innerHTML = \`
+          <div class="bg-gray-800 rounded-xl p-6 shadow-lg text-center">
+            <p class="text-gray-400">No active process. Waiting for Claude to create one...</p>
+          </div>
+        \`;
+        return;
+      }
+      
+      const completedSteps = active.steps ? active.steps.filter(s => s.status === 'completed').length : 0;
+      const totalSteps = active.steps ? active.steps.length : 0;
+      const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+      
+      const stepsHtml = active.steps ? active.steps.map(step => {
+        const icon = stepIcons[step.status] || '⏳';
+        const activeClass = step.status === 'in_progress' ? 'step-in_progress' : '';
+        return \`
+          <div class="step-item border-l-4 pl-3 py-2 status-\${step.status} \${activeClass} bg-gray-700/30 rounded-r">
+            <div class="flex items-center gap-2">
+              <span>\${icon}</span>
+              <span class="text-sm">\${escapeHtml(step.name)}</span>
+              <span class="text-xs text-gray-500 ml-auto">\${step.status}</span>
+            </div>
+          </div>
+        \`;
+      }).join('') : '<p class="text-gray-500 text-sm">No steps defined</p>';
+      
+      container.innerHTML = \`
+        <div class="bg-gray-800 rounded-xl p-6 shadow-lg active-process process-card">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-2xl">\${statusIcons[active.status] || '📋'}</span>
+                <h2 class="text-xl font-semibold">\${escapeHtml(active.name)}</h2>
+                <span class="text-xs text-gray-500 font-mono">\${active.id}</span>
+              </div>
+              <p class="text-gray-400 text-sm">\${escapeHtml(active.goal)}</p>
+            </div>
+            <div class="text-right">
+              <span class="px-2 py-1 rounded text-xs font-medium bg-blue-600 text-white">\${active.status}</span>
+              <div class="text-xs text-gray-500 mt-1">Updated: \${new Date(active.updatedAt).toLocaleString()}</div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <div class="flex justify-between text-sm text-gray-400 mb-1">
+              <span>Progress</span>
+              <span>\${completedSteps}/\${totalSteps} steps</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2">
+              <div class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full progress-bar" style="width: \${progress}%"></div>
+            </div>
+          </div>
+          
+          <div class="mb-4">
+            <h3 class="text-sm font-medium text-gray-300 mb-2">Steps</h3>
+            <div class="space-y-2">
+              \${stepsHtml}
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            <div>
+              <h3 class="text-sm font-medium text-gray-300 mb-2">Evidence (\${active.evidence ? active.evidence.length : 0})</h3>
+              <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+                \${active.evidence && active.evidence.length > 0 ? active.evidence.slice(-3).map(e => \`<div class="truncate">• \${escapeHtml(e.value)}</div>\`).join('') : '<div class="text-gray-500">None</div>'}
+              </div>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-300 mb-2">Decisions (\${active.decisions ? active.decisions.length : 0})</h3>
+              <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+                \${active.decisions && active.decisions.length > 0 ? active.decisions.slice(-3).map(d => \`<div class="truncate">• \${escapeHtml(d.choice)}</div>\`).join('') : '<div class="text-gray-500">None</div>'}
+              </div>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-300 mb-2">Risks (\${active.risks ? active.risks.length : 0})</h3>
+              <div class="text-xs text-gray-400 max-h-32 overflow-y-auto">
+                \${active.risks && active.risks.length > 0 ? active.risks.slice(-3).map(r => \`<div class="truncate">• \${escapeHtml(r.risk)}</div>\`).join('') : '<div class="text-gray-500">None</div>'}
+              </div>
+            </div>
+          </div>
+        </div>
+      \`;
+    }
+    
+    function renderBackgroundProcesses() {
+      const container = document.getElementById('process-grid');
+      const background = state.processes.filter(p => p.id !== state.activeProcessId);
+      
+      if (background.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-sm col-span-full">No other processes</div>';
+        return;
+      }
+      
+      container.innerHTML = background.map(p => \`
+        <div class="process-card background-process bg-gray-800 rounded-lg p-4 border-l-4 status-\${p.status}">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">\${statusIcons[p.status] || '📋'}</span>
+            <span class="font-medium text-sm truncate">\${escapeHtml(p.name)}</span>
+          </div>
+          <div class="text-xs text-gray-400 mb-2 truncate">\${escapeHtml(p.goal)}</div>
+          <div class="w-full bg-gray-700 rounded-full h-1.5 mb-2">
+            <div class="bg-blue-500 h-1.5 rounded-full progress-bar" style="width: \${p.progress}%"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500">
+            <span>\${p.progress}%</span>
+            <span>\${p.status}</span>
+          </div>
+        </div>
+      \`).join('');
+    }
+    
+    function updateTimestamp() {
+      document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
+    }
+  </script>
+</body>
+</html>`;
+}
+
+function renderStepsCompact(steps: Step[]): string {
+  if (steps.length === 0) {
+    return '<p class="text-gray-500 text-sm">No steps defined</p>';
+  }
+  
+  const stepIcons: Record<string, string> = {
+    pending: '⏳',
+    in_progress: '▶️',
+    completed: '✓',
+    failed: '✗',
+    skipped: '⏭️'
+  };
+  
+  return steps.map(step => {
+    const icon = stepIcons[step.status] || '⏳';
+    const activeClass = step.status === 'in_progress' ? 'step-in_progress' : '';
+    
+    return `
+      <div class="step-item border-l-4 pl-3 py-2 status-${step.status} ${activeClass} bg-gray-700/30 rounded-r">
+        <div class="flex items-center gap-2">
+          <span>${icon}</span>
+          <span class="text-sm">${escapeHtml(step.name)}</span>
+          <span class="text-xs text-gray-500 ml-auto">${step.status}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
