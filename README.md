@@ -15,14 +15,33 @@
 
 ## Installation
 
+### From Source (Recommended)
+
 ```bash
-npm install -g procside
+# Clone the repo
+git clone https://github.com/Hysas/procside.git
+cd procside
+
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Link globally (optional, makes 'procside' available everywhere)
+npm link
 ```
 
-Or use directly with npx:
+After linking, `procside` will be available globally. Alternatively, run directly:
 
 ```bash
-npx procside --help
+node /path/to/procside/dist/index.js --help
+```
+
+### From npm (Coming Soon)
+
+```bash
+npm install -g procside
 ```
 
 ## Quick Start
@@ -417,6 +436,10 @@ npm test
 - Archive and restore processes
 - Version snapshots and history
 - 16 MCP tools
+
+### v0.5.1 - Publishing (In Progress)
+- Publish to npm registry
+- CI/CD for automated releases
 
 ### v0.6.0 - Team Features
 - Multi-agent process merging

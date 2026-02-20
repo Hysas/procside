@@ -41,9 +41,10 @@
 process_init, process_list, process_switch, process_status, process_add_step, process_step_start, process_step_complete, process_decide, process_risk, process_evidence, process_render, process_check, process_archive, process_restore, process_version, process_history
 
 ## Next Steps
-1. Update README with multi-process documentation
-2. Consider dashboard multi-process visualization
-3. Plan v0.6.0 features (team collaboration)
+1. Publish to npm registry (v0.5.1)
+2. Set up CI/CD for automated releases
+3. Consider dashboard multi-process visualization
+4. Plan v0.6.0 features (team collaboration)
 
 ## Session Context
 

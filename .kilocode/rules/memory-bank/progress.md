@@ -75,6 +75,8 @@
 
 ## Not Started ⏳
 
+- [ ] Publish to npm registry
+- [ ] CI/CD for automated releases
 - [ ] Process template CLI commands
 - [ ] Multi-agent process merging
 - [ ] Dashboard multi-process visualization
@@ -90,6 +92,10 @@
 | 0.5.0 | Feb 2026 | Multi-process support, 16 MCP tools, 95 tests |
 
 ## Roadmap
+
+### v0.5.1 - Publishing (In Progress)
+- Publish to npm registry
+- CI/CD for automated releases
 
 ### v0.6.0 - Team Features
 - Multi-agent support
