@@ -15,7 +15,7 @@
 
 ## Installation
 
-### From Source (Recommended)
+### From Source
 
 ```bash
 # Clone the repo
@@ -28,20 +28,14 @@ npm install
 # Build
 npm run build
 
-# Link globally (optional, makes 'procside' available everywhere)
+# Link globally (makes 'procside' command available everywhere)
 npm link
 ```
 
-After linking, `procside` will be available globally. Alternatively, run directly:
+Alternatively, run directly without linking:
 
 ```bash
 node /path/to/procside/dist/index.js --help
-```
-
-### From npm (Coming Soon)
-
-```bash
-npm install -g procside
 ```
 
 ## Quick Start
@@ -406,7 +400,7 @@ quality_gates:
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/procside.git
+git clone https://github.com/Hysas/procside.git
 cd procside
 
 # Install dependencies
