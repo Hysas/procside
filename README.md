@@ -40,6 +40,8 @@ node /path/to/procside/dist/index.js --help
 
 ## Quick Start
 
+After installing and running `npm link`, you can use `procside` anywhere:
+
 ### 1. Initialize in your project
 
 ```bash
@@ -49,10 +51,11 @@ procside init
 
 This creates `.ai/process.yaml` where your process will be tracked.
 
-### 2. Run an agent through procside
+### 2. Add steps and track progress
 
 ```bash
-procside run "claude code add a new feature for user authentication"
+procside add-step "Implement authentication"
+procside step s1 --status in_progress
 ```
 
 ### 3. View the process status
